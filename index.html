@@ -140,6 +140,25 @@
   #bootlog .ok { color:var(--buoy); } #bootlog .bad { color:var(--dim); text-decoration:line-through; } #bootlog .info { color:var(--foam); }
   #boot .retry { margin-top:22px; background:none; border:1px solid var(--foam); color:var(--foam); font-family:var(--mono); font-size:11px; letter-spacing:0.14em; text-transform:uppercase; padding:10px 18px; cursor:pointer; display:none; }
 
+  #studio {
+    position:fixed; left:50%; bottom:46px; transform:translateX(-50%); z-index:22; display:none;
+    width:min(620px,94vw); background:rgba(10,14,18,0.92); border:1px solid var(--line); padding:12px 14px;
+    font-size:10px; letter-spacing:0.12em; text-transform:uppercase; transition:opacity .4s ease;
+  }
+  #studio .st-title { color:var(--buoy); font-weight:700; margin-bottom:8px; }
+  #studio .st-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  #studio select, #studio button, #studio a {
+    background:none; border:1px solid var(--line); color:var(--foam); font-family:var(--mono);
+    font-size:10px; letter-spacing:0.12em; text-transform:uppercase; padding:7px 10px; cursor:pointer; text-decoration:none;
+  }
+  #studio select option { background:var(--ink); }
+  #studio button:hover, #studio a:hover { border-color:var(--buoy); }
+  #studio button:disabled { opacity:0.4; cursor:default; }
+  #studio #stcancel, #studio #stdl { display:none; }
+  #studio .st-bar { height:5px; background:var(--line); margin-top:10px; }
+  #studio #stfill { height:100%; width:0%; background:var(--buoy); transition:width .2s ease; }
+  #studio #stmsg { margin-top:7px; color:var(--dim); }
+  .hud-hidden #studio { opacity:0; pointer-events:none; }
   #bootbar { width:min(560px,92vw); margin:0 0 14px; }
   #bootbar .track { height:6px; background:var(--line); overflow:hidden; }
   #bootbar .fill { height:100%; width:0%; background:var(--buoy); transition:width .25s ease; }
@@ -232,6 +251,17 @@
     <button id="kioskbtn">KIOSK: OFF</button>
     <div id="channels"></div>
   </div>
+</div>
+<div id="studio">
+  <div class="st-title">STUDIO · record the cams now, render a 1-minute video offline</div>
+  <div class="st-row">
+    <select id="stres"><option value="1280x720">720p</option><option value="1920x1080" selected>1080p</option><option value="3840x2160">4K</option></select>
+    <button id="stgo">RECORD 60s + RENDER 60s</button>
+    <button id="stcancel">CANCEL</button>
+    <a id="stdl">DOWNLOAD</a>
+  </div>
+  <div class="st-bar"><div id="stfill"></div></div>
+  <div id="stmsg">waiting for cams…</div>
 </div>
 <div id="tapinfo"></div>
 <div id="keys">H HUD · F FULL · W FLUID · X SHUFFLE · B FREEFORM · R REC · S PNG · TAP A BLOCK</div>
@@ -809,13 +839,19 @@ function adaptQuality(rawDt, now) {
   else fastSince = 0;
 }
 
+let exportJob = null;   // set while the studio is rendering offline; the live loop steps aside
 function render(now) {
   requestAnimationFrame(render);
+  if (exportJob) return;
   const rawDt = now - lastFrame;
   const dt = Math.min(rawDt / 1000, 0.033) || 0.016; lastFrame = now;
   if (!active.length || !cells.length || !gl) return;
   if (rawDt > 0 && rawDt < 500) adaptQuality(rawDt, now);
-
+  drawFrame(now, dt);
+}
+/* one full frame of the synthesizer at simulated time `now` (ms) — used by the live loop and the offline exporter */
+function drawFrame(now, dt) {
+  if (!active.length || !cells.length || !gl) return;
   let allowed = null;
   if (soloBiggest && active.length) {
     const top = rankSmallest
@@ -869,7 +905,7 @@ function render(now) {
   } else present(mosaicTex, now);
 
   const remain = Math.max(nextRecompose - Date.now(), 0);
-  document.getElementById('countdown').textContent = `${String(Math.floor(remain/60000)).padStart(2,'0')}:${String(Math.floor(remain%60000/1000)).padStart(2,'0')}`;
+  document.getElementById('countdown').textContent = STUDIO ? 'STUDIO' : `${String(Math.floor(remain/60000)).padStart(2,'0')}:${String(Math.floor(remain%60000/1000)).padStart(2,'0')}`;
   if (recorder) { const s = Math.floor((now - recStart)/1000); document.getElementById('rectime').textContent = `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }
 }
 
@@ -1184,11 +1220,153 @@ async function boot() {
   else if (!fluidOK) log('· half-float textures unsupported — fluid overlay disabled', 'bad');
   const ok = await recompose(true);
   // the set stays fixed until the recompose timer (or a setting change) asks for a new one
-  if (ok) { setTimeout(() => bootEl.classList.add('gone'), 600); if (!recomposeTimer) recomposeTimer = setInterval(() => {
+  if (ok && STUDIO) studioReady();
+  if (ok) { setTimeout(() => bootEl.classList.add('gone'), 600); if (!recomposeTimer && !STUDIO) recomposeTimer = setInterval(() => {
       if (Date.now() >= nextRecompose) { deadIds = new Set(); recompose(false); }
     }, 5000); }
 }
 retrybtn.addEventListener('click', boot);
+
+/* ================= STUDIO (/studio) =================
+   Record every cam ahead of time, swap the live streams for those local clips, then render one
+   minute of the synthesizer OFFLINE (fixed 30fps timeline, WebCodecs -> MP4). The output no longer
+   depends on the streams, and a slow machine just renders slower instead of dropping frames. */
+const STUDIO = /\/studio\/?$/.test(location.pathname) || /[?&]studio\b/.test(location.search);
+const CAPTURE_SEC = 60, OUT_SEC = 60, OUT_FPS = 30;
+const MUXERS = ['https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.js', 'https://cdn.jsdelivr.net/npm/webm-muxer@5.0.3/build/webm-muxer.js'];
+let studioCancel = false, studioBusy = false, studioUrl = null;
+const $st = id => document.getElementById(id);
+function studioSay(msg, pct) {
+  $st('stmsg').textContent = msg;
+  if (pct != null) $st('stfill').style.width = Math.min(Math.max(pct, 0), 100) + '%';
+}
+const loadScript = src => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('could not load ' + src)); document.head.appendChild(s); });
+
+function studioReady() {
+  $st('studio').style.display = 'block';
+  if (!(window.VideoEncoder && window.VideoFrame && window.MediaRecorder)) {
+    $st('stgo').disabled = true; studioSay('this browser lacks WebCodecs — use current Chrome or Edge', 0);
+  } else studioSay(`ready · ${active.length} cams locked · records ${CAPTURE_SEC}s, then renders ${OUT_SEC}s offline`, 0);
+}
+
+/* 1) record each live feed (video track only) into an in-memory webm */
+async function captureClips(sec) {
+  const mime = ['video/webm;codecs=vp8', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m));
+  const recs = [];
+  active.forEach(e => {
+    const v = e.video; if (!v.captureStream) return;
+    v.style.cssText = 'position:fixed;left:0;bottom:0;width:2px;height:2px;opacity:0.01;pointer-events:none';   // stay "rendered" so frames reach captureStream
+    const chunks = [];
+    const rec = new MediaRecorder(new MediaStream(v.captureStream().getVideoTracks()), { mimeType: mime, videoBitsPerSecond: 1.5e6 });
+    rec.ondataavailable = ev => { if (ev.data.size) chunks.push(ev.data); };
+    const done = new Promise(res => { rec.onstop = res; });
+    rec.start(1000); recs.push({ e, rec, chunks, done });
+  });
+  if (!recs.length) throw new Error('no feed can be recorded in this browser');
+  const t0 = performance.now();
+  await new Promise(res => {
+    const iv = setInterval(() => {
+      const p = (performance.now() - t0) / 1000;
+      studioSay(`recording cams · ${Math.min(Math.round(p), sec)} / ${sec}s · ${recs.length} feeds`, Math.min(p / sec, 1) * 35);
+      if (p >= sec || studioCancel) { clearInterval(iv); res(); }
+    }, 250);
+  });
+  recs.forEach(r => { if (r.rec.state !== 'inactive') r.rec.stop(); });
+  await Promise.all(recs.map(r => r.done));
+  return recs.filter(r => r.chunks.length).map(r => ({ e: r.e, blob: new Blob(r.chunks, { type: 'video/webm' }) }));
+}
+
+/* 2) replace each live <video> with a looping local clip — from here on nothing waits on the network */
+async function useLocalClips(clips) {
+  for (const { e, blob } of clips) {
+    const v = document.createElement('video');
+    v.muted = true; v.playsInline = true; v.style.display = 'none'; v.src = URL.createObjectURL(blob);
+    document.body.appendChild(v);
+    v.addEventListener('ended', () => { v.currentTime = 0; v.play().catch(() => {}); });   // MediaRecorder webm has no duration, so loop by hand
+    await new Promise(res => { v.addEventListener('loadeddata', res, { once: true }); v.addEventListener('error', res, { once: true }); setTimeout(res, 5000); });
+    try { await v.play(); } catch (x) {}
+    if (v.readyState < 2) { v.remove(); continue; }   // clip unusable: keep that feed live
+    try { e.hls?.destroy(); } catch (x) {}
+    e.video.remove(); e.video = v; e.hls = null; e.fcT = undefined; e.stalls = 0; e.lastT = -1; e.local = true;
+  }
+}
+
+/* 3) render OUT_SEC of synthesizer on a fixed timeline; clips play at whatever speed the machine sustains */
+async function renderVideo(sec, w, h) {
+  studioSay('loading encoder…', 35);
+  await Promise.all(MUXERS.map(u => loadScript(u).catch(() => null)));
+  const base = { width: w, height: h, bitrate: w * h > 2.5e6 ? 40e6 : 14e6, framerate: OUT_FPS };
+  let cfg, muxer, target, mime, ext;
+  const avc = { ...base, codec: h > 1200 ? 'avc1.640033' : 'avc1.640028', avc: { format: 'avc' } };
+  if (window.Mp4Muxer && (await VideoEncoder.isConfigSupported(avc)).supported) {
+    cfg = avc; target = new Mp4Muxer.ArrayBufferTarget(); mime = 'video/mp4'; ext = 'mp4';
+    muxer = new Mp4Muxer.Muxer({ target, video: { codec: 'avc', width: w, height: h }, fastStart: 'in-memory' });
+  } else {
+    const vp9 = { ...base, codec: 'vp09.00.10.08' };
+    if (!window.WebMMuxer || !(await VideoEncoder.isConfigSupported(vp9)).supported) throw new Error('no supported video encoder');
+    cfg = vp9; target = new WebMMuxer.ArrayBufferTarget(); mime = 'video/webm'; ext = 'webm';
+    muxer = new WebMMuxer.Muxer({ target, video: { codec: 'V_VP9', width: w, height: h, frameRate: OUT_FPS } });
+  }
+  let encErr = null;
+  const encoder = new VideoEncoder({ output: (c, m) => muxer.addVideoChunk(c, m), error: e => { encErr = e; } });
+  encoder.configure(cfg);
+
+  const prev = { W, H };
+  exportJob = { cancel: false };
+  setRenderSize(w, h);
+  const total = sec * OUT_FPS, frameMs = 1000 / OUT_FPS;
+  let simT = performance.now(), lastStart = performance.now(), speed = 1, i = 0;
+  try {
+    for (; i < total; i++) {
+      if (studioCancel || encErr) break;
+      while (performance.now() - lastStart < frameMs) await new Promise(r => requestAnimationFrame(r));   // wall pace = real time when the machine keeps up
+      const realDt = performance.now() - lastStart; lastStart = performance.now();
+      speed += (Math.min(1, Math.max(0.1, frameMs / realDt)) - speed) * 0.2;   // fell behind → clips slow to match
+      if (i % 10 === 0) active.forEach(e => { try { e.video.playbackRate = speed; if (e.video.paused) e.video.play().catch(() => {}); } catch (x) {} });
+      simT += frameMs;
+      drawFrame(simT, 1 / OUT_FPS);
+      const vf = new VideoFrame(glc, { timestamp: Math.round(i * 1e6 / OUT_FPS) });
+      encoder.encode(vf, { keyFrame: i % OUT_FPS === 0 }); vf.close();
+      while (encoder.encodeQueueSize > 6) await new Promise(r => setTimeout(r, 5));
+      studioSay(`rendering ${i + 1} / ${total} frames · clips at ${speed.toFixed(2)}× — keep this tab in front`, 35 + (i / total) * 63);
+    }
+    if (encErr) throw encErr;
+    if (studioCancel) return null;
+    await encoder.flush(); muxer.finalize();
+    return { blob: new Blob([target.buffer], { type: mime }), ext };
+  } finally {
+    try { encoder.close(); } catch (x) {}
+    exportJob = null;
+    active.forEach(e => { try { e.video.playbackRate = 1; } catch (x) {} });
+    fitLive();
+  }
+}
+
+async function runStudio() {
+  if (studioBusy) return;
+  studioBusy = true; studioCancel = false; $st('stgo').disabled = true; $st('stcancel').style.display = 'inline-block'; $st('stdl').style.display = 'none';
+  try {
+    const clips = await captureClips(CAPTURE_SEC);
+    if (studioCancel) throw new Error('cancelled');
+    studioSay(`loading ${clips.length} recorded clips…`, 35);
+    await useLocalClips(clips);
+    const [w, h] = $st('stres').value.split('x').map(Number);
+    const out = await renderVideo(OUT_SEC, w, h);
+    if (!out) throw new Error('cancelled');
+    if (studioUrl) URL.revokeObjectURL(studioUrl);
+    studioUrl = URL.createObjectURL(out.blob);
+    const a = $st('stdl'); a.href = studioUrl; a.download = `oceanview-1min-${w}x${h}-${new Date().toISOString().replace(/[:.]/g, '-')}.${out.ext}`; a.style.display = 'inline-block';
+    a.click();
+    studioSay(`done · ${(out.blob.size / 1048576).toFixed(1)} MB ${out.ext.toUpperCase()} · live view now plays from the recorded clips`, 100);
+  } catch (err) {
+    studioSay(err.message === 'cancelled' ? 'cancelled' : 'failed: ' + err.message, 0);
+  } finally {
+    studioBusy = false; $st('stgo').disabled = false; $st('stcancel').style.display = 'none';
+  }
+}
+if (STUDIO) setInterval(() => active.forEach(e => { if (e.local && e.video.paused) e.video.play().catch(() => {}); }), 1500);   // browsers pause background media; keep the local clips rolling
+$st('stgo').addEventListener('click', runStudio);
+$st('stcancel').addEventListener('click', () => { studioCancel = true; });
 
 /* ================= KEYS ================= */
 addEventListener('keydown', e => {
