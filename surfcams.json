@@ -1,0 +1,705 @@
+﻿{
+    "note":  "Reference copy of the CAMS roster in index.html (the app reads index.html). lat/lon feed the Open-Meteo marine API.",
+    "cams":  [
+                 {
+                     "id":  "margaret-river",
+                     "name":  "Margaret River WA",
+                     "url":  "https://stream.n1.au.swellnet.com/surfcams/margaret-river.stream/chunks.m3u8",
+                     "lat":  -33.98,
+                     "lon":  114.99
+                 },
+                 {
+                     "id":  "duranbah",
+                     "name":  "Duranbah NSW",
+                     "url":  "https://stream.n1.au.swellnet.com/surfcams/duranbah.stream/playlist.m3u8",
+                     "lat":  -28.16,
+                     "lon":  153.55
+                 },
+                 {
+                     "id":  "scarborough",
+                     "name":  "Scarborough WA",
+                     "url":  "https://stream.n1.au.swellnet.com/surfcams/scarborough.stream/chunks.m3u8",
+                     "lat":  -31.89,
+                     "lon":  115.75
+                 },
+                 {
+                     "id":  "middleton-bay",
+                     "name":  "Middleton Bay WA",
+                     "url":  "https://stream.n1.au.swellnet.com/surfcams/middleton-bay.stream/chunks.m3u8",
+                     "lat":  -35.03,
+                     "lon":  117.92
+                 },
+                 {
+                     "id":  "shark-island",
+                     "name":  "Shark Island NSW",
+                     "url":  "https://stream.n1.au.swellnet.com/surfcams/shark-island.stream/playlist.m3u8",
+                     "lat":  -34.06,
+                     "lon":  151.16
+                 },
+                 {
+                     "id":  "maroubra",
+                     "name":  "Maroubra NSW",
+                     "url":  "https://cams.cdn-surfline.com/cdn-au/au-maroubra/chunklist.m3u8",
+                     "lat":  -33.95,
+                     "lon":  151.26
+                 },
+                 {
+                     "id":  "bondi",
+                     "name":  "Bondi NSW",
+                     "url":  "https://cams.cdn-surfline.com/cdn-au/au-midbondi/chunklist.m3u8",
+                     "lat":  -33.89,
+                     "lon":  151.28
+                 },
+                 {
+                     "id":  "mooloolaba",
+                     "name":  "Mooloolaba QLD",
+                     "url":  "https://cams.cdn-surfline.com/cdn-au/au-mooloolaba/chunklist.m3u8",
+                     "lat":  -26.68,
+                     "lon":  153.12
+                 },
+                 {
+                     "id":  "alex-headland",
+                     "name":  "Alexandra Headland QLD",
+                     "url":  "https://cams.cdn-surfline.com/cdn-au/au-alexheadland/chunklist.m3u8",
+                     "lat":  -26.67,
+                     "lon":  153.11
+                 },
+                 {
+                     "id":  "ballina",
+                     "name":  "Ballina NSW",
+                     "url":  "https://streaming-au.coastalcoms.com/cw/ballinarmscamera.stream/chunklist.m3u8",
+                     "lat":  -28.87,
+                     "lon":  153.59
+                 },
+                 {
+                     "id":  "brunswick-heads",
+                     "name":  "Brunswick Heads NSW",
+                     "url":  "https://streaming-au.coastalcoms.com/cw/brunswickheadscamera.stream/chunklist.m3u8",
+                     "lat":  -28.54,
+                     "lon":  153.55
+                 },
+                 {
+                     "id":  "merimbula",
+                     "name":  "Merimbula NSW",
+                     "url":  "https://streaming-au.coastalcoms.com/cw/merimbulacamera.stream/chunklist.m3u8",
+                     "lat":  -36.89,
+                     "lon":  149.93
+                 },
+                 {
+                     "id":  "forster",
+                     "name":  "Forster NSW",
+                     "url":  "https://streaming-au.coastalcoms.com/cw/forstercamera.stream/chunklist.m3u8",
+                     "lat":  -32.18,
+                     "lon":  152.52
+                 },
+                 {
+                     "id":  "evans-head",
+                     "name":  "Evans Head NSW",
+                     "url":  "https://streaming-au.coastalcoms.com/cw/evansheadcamera.stream/chunklist_w811034302.m3u8",
+                     "lat":  -29.11,
+                     "lon":  153.43
+                 },
+                 {
+                     "id":  "biarritz",
+                     "name":  "Biarritz FR",
+                     "url":  "https://live.viewsurf.com/liveedge/biarritzgrandeplage_1_1.stream/playlist.m3u8",
+                     "lat":  43.48,
+                     "lon":  -1.56
+                 },
+                 {
+                     "id":  "anglet-1",
+                     "name":  "Anglet 1 FR",
+                     "url":  "https://live.viewsurf.com/liveedge/anglet01_1_1.stream/playlist.m3u8",
+                     "lat":  43.52,
+                     "lon":  -1.53
+                 },
+                 {
+                     "id":  "anglet-7",
+                     "name":  "Anglet 7 FR",
+                     "url":  "https://live.viewsurf.com/liveedge/anglet07_1_1.stream/playlist.m3u8",
+                     "lat":  43.53,
+                     "lon":  -1.52
+                 },
+                 {
+                     "id":  "boscombe",
+                     "name":  "Boscombe UK",
+                     "url":  "http://cams.cdn-surfline.com/cdn-int/uk-boscombe/playlist.m3u8",
+                     "lat":  50.72,
+                     "lon":  -1.84
+                 },
+                 {
+                     "id":  "westward-ho",
+                     "name":  "Westward Ho! UK",
+                     "url":  "https://camsecure.co/HLS/westho.m3u8",
+                     "lat":  51.04,
+                     "lon":  -4.24
+                 },
+                 {
+                     "id":  "jennettes-pier",
+                     "name":  "Jennette\u0027s Pier NC",
+                     "url":  "https://5a5f765a4fcc2.streamlock.net:1936/live/nh4.stream/playlist.m3u8",
+                     "lat":  35.91,
+                     "lon":  -75.59
+                 },
+                 {
+                     "id":  "southport-nc",
+                     "name":  "Southport NC",
+                     "url":  "http://5a5f765a4fcc2.streamlock.net:1935/live/spp.stream/playlist.m3u8",
+                     "lat":  33.91,
+                     "lon":  -78.02
+                 },
+                 {
+                     "id":  "narragansett",
+                     "name":  "Narragansett RI",
+                     "url":  "https://5c864aa99ee04.streamlock.net/surfcam/live.stream/chunklist_w1964635316.m3u8",
+                     "lat":  41.42,
+                     "lon":  -71.46
+                 },
+                 {
+                     "id":  "pawleys-island",
+                     "name":  "Pawleys Island SC",
+                     "url":  "https://5f4ad95bcff44.streamlock.net:444/pawleys1/pawleys1.stream/chunklist_w1289805910.m3u8",
+                     "lat":  33.43,
+                     "lon":  -79.12
+                 },
+                 {
+                     "id":  "myrtle-beach",
+                     "name":  "Myrtle Beach SC",
+                     "url":  "https://5ab0d1d85f91f.streamlock.net/Riptydz/cam-rt-beach.stream/playlist.m3u8",
+                     "lat":  33.69,
+                     "lon":  -78.88
+                 },
+                 {
+                     "id":  "venice-beach",
+                     "name":  "Venice Beach CA",
+                     "url":  "https://5ddd47d64e730.streamlock.net:444/westland/westland.stream/chunklist_w2084520689.m3u8",
+                     "lat":  33.99,
+                     "lon":  -118.47
+                 },
+                 {
+                     "id":  "tybee-island",
+                     "name":  "Tybee Island GA",
+                     "url":  "https://5ddd47d64e730.streamlock.net:444/mousepad1/mousepad1.stream/chunklist_w733151700.m3u8",
+                     "lat":  32,
+                     "lon":  -80.85
+                 },
+                 {
+                     "id":  "ormond-beach",
+                     "name":  "Ormond Beach FL",
+                     "url":  "https://streamer2.brownrice.com/coralsands1/coralsands1.stream/main_playlist.m3u8",
+                     "lat":  29.29,
+                     "lon":  -81.04
+                 },
+                 {
+                     "id":  "grayton-beach",
+                     "name":  "Grayton Beach FL",
+                     "url":  "https://59b69eab8875b.streamlock.net/live/Beach_Cam_01.stream/playlist.m3u8",
+                     "lat":  30.32,
+                     "lon":  -86.16
+                 },
+                 {
+                     "id":  "panama-city",
+                     "name":  "Panama City Beach FL",
+                     "url":  "https://5ed7b8fd7bf40.streamlock.net:444/holidayinnpcbbeach/holidayinnpcbbeachcam/chunklist_w1565534470.m3u8",
+                     "lat":  30.18,
+                     "lon":  -85.81
+                 },
+                 {
+                     "id":  "sao-vicente",
+                     "name":  "SÃ£o Vicente BR",
+                     "url":  "http://egina.nethorizontes.tv:1935/lopesip/lopesip02.stream/playlist.m3u8",
+                     "lat":  -23.97,
+                     "lon":  -46.39
+                 },
+                 {
+                     "id":  "caorle",
+                     "name":  "Caorle IT",
+                     "url":  "https://cdn-003.whatsupcams.com/hls/it_caorle08.m3u8",
+                     "lat":  45.59,
+                     "lon":  12.89
+                 },
+                 {
+                     "id":  "zakynthos",
+                     "name":  "Zakynthos GR",
+                     "url":  "https://cdn-005.whatsupcams.com/hls/gr_zakynthos01.m3u8",
+                     "lat":  37.78,
+                     "lon":  20.9
+                 },
+                 {
+                     "id":  "mykonos",
+                     "name":  "Mykonos GR",
+                     "url":  "https://cdn-002.whatsupcams.com/hls/gr_mykonos01.m3u8",
+                     "lat":  37.45,
+                     "lon":  25.33
+                 },
+                 {
+                     "id":  "fenit",
+                     "name":  "Fenit IE",
+                     "url":  "https://cdn-004.whatsupcams.com/hls/ie_tralee01.m3u8",
+                     "lat":  52.27,
+                     "lon":  -9.86
+                 },
+                 {
+                     "id":  "ehukai-pipeline",
+                     "name":  "Ehukai / Pipeline HI",
+                     "url":  "https://outbound-production.explore.org/stream-production-4/.m3u8",
+                     "lat":  21.66,
+                     "lon":  -158.05
+                 },
+                 {
+                     "id":  "sagres",
+                     "name":  "Sagres PT",
+                     "url":  "https://camsecure.co/HLS/sagressholidays.m3u8",
+                     "lat":  37.01,
+                     "lon":  -8.95
+                 },
+                 {
+                     "id":  "ilfracombe",
+                     "name":  "Ilfracombe UK",
+                     "url":  "https://camsecure.co/HLS/ilfracombe2.m3u8",
+                     "lat":  51.21,
+                     "lon":  -4.11
+                 },
+                 {
+                     "id":  "viganj",
+                     "name":  "Viganj HR",
+                     "url":  "https://cdn-03.whatsupcams.com/hls/hr_viganj1.m3u8",
+                     "lat":  42.96,
+                     "lon":  17.1
+                 },
+                 {
+                     "id":  "igrane",
+                     "name":  "Igrane HR",
+                     "url":  "https://cdn-03.whatsupcams.com/hls/hr_igrane1.m3u8",
+                     "lat":  43.24,
+                     "lon":  17.14
+                 },
+                 {
+                     "id":  "korcula",
+                     "name":  "Korcula HR",
+                     "url":  "https://cdn-03.whatsupcams.com/hls/hr_korcula.m3u8",
+                     "lat":  42.96,
+                     "lon":  17.13
+                 },
+                 {
+                     "id":  "nin",
+                     "name":  "Nin HR",
+                     "url":  "https://cdn-03.whatsupcams.com/hls/hr_nin.m3u8",
+                     "lat":  44.24,
+                     "lon":  15.18
+                 },
+                 {
+                     "id":  "novalja",
+                     "name":  "Novalja HR",
+                     "url":  "https://cdn-03.whatsupcams.com/hls/hr_nov2.m3u8",
+                     "lat":  44.55,
+                     "lon":  14.88
+                 },
+                 {
+                     "id":  "novi-vinodolski",
+                     "name":  "Novi Vinodolski HR",
+                     "url":  "https://cdn-03.whatsupcams.com/hls/hr_novivinodolski1.m3u8",
+                     "lat":  45.13,
+                     "lon":  14.79
+                 },
+                 {
+                     "id":  "pag-caska",
+                     "name":  "Pag Caska HR",
+                     "url":  "https://cdn-03.whatsupcams.com/hls/hr_pagcaska01.m3u8",
+                     "lat":  44.51,
+                     "lon":  14.96
+                 },
+                 {
+                     "id":  "baska-voda",
+                     "name":  "Baska Voda HR",
+                     "url":  "https://cdn-03.whatsupcams.com/hls/hr_baskavoda3.m3u8",
+                     "lat":  43.36,
+                     "lon":  16.95
+                 },
+                 {
+                     "id":  "dubrovnik",
+                     "name":  "Dubrovnik HR",
+                     "url":  "https://cdn-03.whatsupcams.com/hls/hr_dubrovnik03.m3u8",
+                     "lat":  42.64,
+                     "lon":  18.11
+                 },
+                 {
+                     "id":  "stintino",
+                     "name":  "Stintino Sardinia IT",
+                     "url":  "https://cdn-03.whatsupcams.com/hls/it_stintino01.m3u8",
+                     "lat":  40.94,
+                     "lon":  8.23
+                 },
+                 {
+                     "id":  "san-vincenzo",
+                     "name":  "San Vincenzo IT",
+                     "url":  "https://cdn-002.whatsupcams.com/hls/it_sanvincenzo01.m3u8",
+                     "lat":  43.1,
+                     "lon":  10.54
+                 },
+                 {
+                     "id":  "bayahibe",
+                     "name":  "Bayahibe DO",
+                     "url":  "https://cdn-001.whatsupcams.com/hls/do_bayahibe01.m3u8",
+                     "lat":  18.37,
+                     "lon":  -68.84
+                 },
+                 {
+                     "id":  "dawlish-warren",
+                     "name":  "Dawlish Warren UK",
+                     "url":  "https://5a6f905a69aae.streamlock.net/DBC_Mount_Pleasant/Dawlish_Beach_Cams_Mount_Direct.stream/playlist.m3u8",
+                     "lat":  50.6,
+                     "lon":  -3.44
+                 },
+                 {
+                     "id":  "nazare",
+                     "name":  "Nazare Praia do Norte PT",
+                     "url":  "http://video-auth1.iol.pt:1935/beachcam/nazareparadonorte/chunks.m3u8",
+                     "lat":  39.61,
+                     "lon":  -9.09
+                 },
+                 {
+                     "id":  "supertubos",
+                     "name":  "Supertubos Peniche PT",
+                     "url":  "http://video-auth1.iol.pt:1935/beachcam/supertubos/chunks.m3u8",
+                     "lat":  39.34,
+                     "lon":  -9.37
+                 },
+                 {
+                     "id":  "santa-cruz",
+                     "name":  "Santa Cruz PT",
+                     "url":  "http://video-auth1.iol.pt:1935/beachcam/santacruz/chunks.m3u8",
+                     "lat":  39.14,
+                     "lon":  -9.38
+                 },
+                 {
+                     "id":  "snapper-rocks",
+                     "name":  "Snapper Rocks QLD",
+                     "url":  "https://stream.n1.au.swellnet.com/surfcams/snapper-rocks.stream/chunks.m3u8",
+                     "lat":  -28.16,
+                     "lon":  153.55
+                 },
+                 {
+                     "id":  "noosa-heads",
+                     "name":  "Noosa Heads QLD",
+                     "url":  "https://stream.n1.au.swellnet.com/surfcams/noosa-heads.stream/chunks.m3u8",
+                     "lat":  -26.38,
+                     "lon":  153.1
+                 },
+                 {
+                     "id":  "newcastle",
+                     "name":  "Newcastle NSW",
+                     "url":  "https://stream.n1.au.swellnet.com/surfcams/newcastle.stream/chunks.m3u8",
+                     "lat":  -32.93,
+                     "lon":  151.79
+                 },
+                 {
+                     "id":  "south-port",
+                     "name":  "South Port SA",
+                     "url":  "https://stream.n1.au.swellnet.com/surfcams/south-port.stream/chunks.m3u8",
+                     "lat":  -35.18,
+                     "lon":  138.47
+                 },
+                 {
+                     "id":  "hvide-sande",
+                     "name":  "Hvide Sande DK",
+                     "url":  "http://stream.waves4you.com:1935/w4y/ngrp:HSW.stream_all/chunklist_w693964615_b1300000.m3u8",
+                     "lat":  56,
+                     "lon":  8.12
+                 },
+                 {
+                     "id":  "aruba-bucuti",
+                     "name":  "Bucuti Beach AW",
+                     "url":  "http://video3.earthcam.com:1935/fecnetwork/4646.flv/playlist.m3u8",
+                     "lat":  12.55,
+                     "lon":  -70.05
+                 },
+                 {
+                     "id":  "aruba-druif",
+                     "name":  "Druif Beach AW",
+                     "url":  "http://video3.earthcam.com:1935/fecnetwork/6723.flv/playlist.m3u8",
+                     "lat":  12.54,
+                     "lon":  -70.04
+                 },
+                 {
+                     "id":  "aruba-eagle",
+                     "name":  "Eagle Beach AW",
+                     "url":  "http://video3.earthcam.com:1935/fecnetwork/4644.flv/playlist.m3u8",
+                     "lat":  12.56,
+                     "lon":  -70.05
+                 },
+                 {
+                     "id":  "st-croix",
+                     "name":  "St. Croix VI",
+                     "url":  "http://video4.earthcam.com/fecnetwork/4480.flv/playlist.m3u8",
+                     "lat":  17.75,
+                     "lon":  -64.7
+                 },
+                 {
+                     "id":  "san-juan",
+                     "name":  "San Juan PR",
+                     "url":  "http://video4.earthcam.com/fecnetwork/3698sanjuan1.flv/playlist.m3u8",
+                     "lat":  18.46,
+                     "lon":  -66.08
+                 },
+                 {
+                     "id":  "corpus-christi",
+                     "name":  "Corpus Christi TX",
+                     "url":  "http://video2.earthcam.com/fecnetwork/4496.flv/playlist.m3u8",
+                     "lat":  27.8,
+                     "lon":  -97.39
+                 },
+                 {
+                     "id":  "sandestin",
+                     "name":  "Sandestin FL",
+                     "url":  "http://video4.earthcam.com/fecnetwork/5663.flv/playlist.m3u8",
+                     "lat":  30.38,
+                     "lon":  -86.33
+                 },
+                 {
+                     "id":  "daytona",
+                     "name":  "Daytona Beach FL",
+                     "url":  "http://video2.earthcam.com/fecnetwork/5718.flv/playlist.m3u8",
+                     "lat":  29.23,
+                     "lon":  -81
+                 },
+                 {
+                     "id":  "folly-beach",
+                     "name":  "Folly Beach SC",
+                     "url":  "http://5a5f765a4fcc2.streamlock.net:1935/live/fb.stream/playlist.m3u8",
+                     "lat":  32.65,
+                     "lon":  -79.94
+                 },
+                 {
+                     "id":  "santa-monica",
+                     "name":  "Santa Monica Pier CA",
+                     "url":  "http://video4.earthcam.com/fecnetwork/6253.flv/playlist.m3u8",
+                     "lat":  34.01,
+                     "lon":  -118.5
+                 },
+                 {
+                     "id":  "miami-beach",
+                     "name":  "Miami Beach FL",
+                     "url":  "https://videos3.earthcam.com/fecnetwork/13862.flv/playlist.m3u8",
+                     "lat":  25.79,
+                     "lon":  -80.13
+                 },
+                 {
+                     "id":  "rio",
+                     "name":  "Rio de Janeiro BR",
+                     "url":  "https://videos3.earthcam.com/fecnetwork/6593.flv/playlist.m3u8",
+                     "lat":  -22.97,
+                     "lon":  -43.18
+                 },
+                 {
+                     "id":  "dubai-palm",
+                     "name":  "Dubai Palm AE",
+                     "url":  "http://video1.earthcam.com/fecnetwork/6405.flv/playlist.m3u8",
+                     "lat":  25.13,
+                     "lon":  55.12
+                 },
+                 {
+                     "id":  "thailand-coast",
+                     "name":  "Thailand Coast TH",
+                     "url":  "https://videos3.earthcam.com/fecnetwork/14329.flv/playlist.m3u8",
+                     "lat":  12.93,
+                     "lon":  100.88
+                 },
+                 {
+                     "id":  "bognor-regis",
+                     "name":  "Bognor Regis UK",
+                     "url":  "https://videos3.earthcam.com/fecnetwork/5288.flv/playlist.m3u8",
+                     "lat":  50.78,
+                     "lon":  -0.67
+                 },
+                 {
+                     "id":  "thassos",
+                     "name":  "Thassos GR",
+                     "url":  "http://video4.earthcam.com/fecnetwork/3792.flv/playlist.m3u8",
+                     "lat":  40.78,
+                     "lon":  24.71
+                 },
+                 {
+                     "id":  "vilamoura",
+                     "name":  "Vilamoura PT",
+                     "url":  "http://video-auth1.iol.pt:1935/beachcam/vilamoura/chunks.m3u8",
+                     "lat":  37.07,
+                     "lon":  -8.12
+                 },
+                 {
+                     "id":  "moruya",
+                     "name":  "Moruya NSW",
+                     "url":  "https://streaming-au.coastalcoms.com/cw/moruyacamera.stream/chunklist.m3u8",
+                     "lat":  -35.91,
+                     "lon":  150.16
+                 },
+                 {
+                     "id":  "port-macquarie",
+                     "name":  "Port Macquarie NSW",
+                     "url":  "https://streaming-au.coastalcoms.com/cw/portmacquariecamera.stream/chunklist.m3u8",
+                     "lat":  -31.43,
+                     "lon":  152.92
+                 },
+                 {
+                     "id":  "iluka",
+                     "name":  "Iluka NSW",
+                     "url":  "https://streaming-au.coastalcoms.com/cw/ilukacamera.stream/chunklist.m3u8",
+                     "lat":  -29.4,
+                     "lon":  153.35
+                 },
+                 {
+                     "id":  "swansea-tas",
+                     "name":  "Swansea TAS",
+                     "url":  "https://streaming-au.coastalcoms.com/cw/swanseacamera.stream/chunklist.m3u8",
+                     "lat":  -42.12,
+                     "lon":  148.08
+                 },
+                 {
+                     "id":  "ny-fire-island",
+                     "name":  "Fire Island NY",
+                     "url":  "https://fireislandfibccn.b-cdn.net/New_York/fireisland.stream/index.m3u8",
+                     "lat":  40.58,
+                     "lon":  -73.16
+                 },
+                 {
+                     "id":  "ny-lido",
+                     "name":  "Lido Beach NY",
+                     "url":  "https://lidobeach.cdn.coastalcameranetwork.com/New_York/lido.stream/index.m3u8",
+                     "lat":  40.55,
+                     "lon":  -73.62
+                 },
+                 {
+                     "id":  "ny-long-beach",
+                     "name":  "Long Beach NY",
+                     "url":  "https://longbeachnational2.cdn.coastalcameranetwork.com/New_York/longbeachnational2.stream/index.m3u8",
+                     "lat":  40.55,
+                     "lon":  -73.66
+                 },
+                 {
+                     "id":  "ny-skudin",
+                     "name":  "Long Beach NY (Skudin)",
+                     "url":  "https://skudinsurfcam.cdn.coastalcameranetwork.com/sunba/skudinsurfcam/index.m3u8",
+                     "lat":  40.55,
+                     "lon":  -73.68
+                 },
+                 {
+                     "id":  "ny-rockaway",
+                     "name":  "Rockaway Beach NY",
+                     "url":  "https://rockawaybeachoverview.cdn.coastalcameranetwork.com/New_York/rockawaybeachoverview.stream/index.m3u8",
+                     "lat":  40.54,
+                     "lon":  -73.83
+                 },
+                 {
+                     "id":  "ny-rockaway-92",
+                     "name":  "Rockaway 92nd St NY",
+                     "url":  "https://rockaway92nd.b-cdn.net/New_York/rockaway92nd.stream/index.m3u8",
+                     "lat":  40.54,
+                     "lon":  -73.81
+                 },
+                 {
+                     "id":  "nj-donovans",
+                     "name":  "Donovan\u0027s Reef, Sea Bright NJ",
+                     "url":  "https://donovans.cdn.coastalcameranetwork.com/New_Jersey/donovans.stream/index.m3u8",
+                     "lat":  40.36,
+                     "lon":  -73.93
+                 },
+                 {
+                     "id":  "nj-sea-bright",
+                     "name":  "Sea Bright NJ",
+                     "url":  "https://seabrightnj.cdn.coastalcameranetwork.com/sunba/seabrightNJ/index.m3u8",
+                     "lat":  40.36,
+                     "lon":  -73.95
+                 },
+                 {
+                     "id":  "nj-monmouth",
+                     "name":  "Monmouth Beach NJ",
+                     "url":  "https://monmouthbeachnj.cdn.coastalcameranetwork.com/sunba/monmouthbeachnj/index.m3u8",
+                     "lat":  40.33,
+                     "lon":  -73.95
+                 },
+                 {
+                     "id":  "nj-deal",
+                     "name":  "Deal NJ",
+                     "url":  "https://dealcasino.cdn.coastalcameranetwork.com/New_Jersey2/dealcasino.stream/index.m3u8",
+                     "lat":  40.25,
+                     "lon":  -73.97
+                 },
+                 {
+                     "id":  "nj-belmar",
+                     "name":  "Belmar NJ",
+                     "url":  "https://belmar.cdn.coastalcameranetwork.com/New_Jersey/easternlinesbelmar.stream/index.m3u8",
+                     "lat":  40.17,
+                     "lon":  -73.99
+                 },
+                 {
+                     "id":  "nj-manasquan",
+                     "name":  "Manasquan NJ",
+                     "url":  "https://manasquan.cdn.coastalcameranetwork.com/sunba/manasquan/index.m3u8",
+                     "lat":  40.09,
+                     "lon":  -73.99
+                 },
+                 {
+                     "id":  "nj-sea-girt",
+                     "name":  "Sea Girt NJ",
+                     "url":  "https://seagirt.cdn.coastalcameranetwork.com/New_Jersey/seagirt.stream/index.m3u8",
+                     "lat":  40.12,
+                     "lon":  -73.99
+                 },
+                 {
+                     "id":  "nj-lavallette",
+                     "name":  "Lavallette NJ",
+                     "url":  "https://lavallette.cdn.coastalcameranetwork.com/New_Jersey/lavallette.stream/index.m3u8",
+                     "lat":  39.96,
+                     "lon":  -74.02
+                 },
+                 {
+                     "id":  "nj-seaside-park",
+                     "name":  "Seaside Park NJ",
+                     "url":  "https://seasidepark.cdn.coastalcameranetwork.com/New_Jersey/seasidepark.stream/index.m3u8",
+                     "lat":  39.91,
+                     "lon":  -74.03
+                 },
+                 {
+                     "id":  "nj-harvey-cedars",
+                     "name":  "Harvey Cedars LBI NJ",
+                     "url":  "https://harveycedarsnj.cdn.coastalcameranetwork.com/New_Jersey/harveycedars.stream/index.m3u8",
+                     "lat":  39.69,
+                     "lon":  -74.09
+                 },
+                 {
+                     "id":  "nj-ship-bottom",
+                     "name":  "Ship Bottom LBI NJ",
+                     "url":  "https://driftingsands.cdn.coastalcameranetwork.com/sunba/driftingsands/index.m3u8",
+                     "lat":  39.64,
+                     "lon":  -74.14
+                 },
+                 {
+                     "id":  "nj-atlantic-city",
+                     "name":  "Atlantic City NJ",
+                     "url":  "https://acpier.cdn.coastalcameranetwork.com/New_Jersey/atlanticcity.stream/index.m3u8",
+                     "lat":  39.34,
+                     "lon":  -74.38
+                 },
+                 {
+                     "id":  "nj-ocean-city",
+                     "name":  "Ocean City NJ",
+                     "url":  "https://oceancity.cdn.coastalcameranetwork.com/New_Jersey/oceancity.stream/index.m3u8",
+                     "lat":  39.24,
+                     "lon":  -74.53
+                 },
+                 {
+                     "id":  "nj-avalon",
+                     "name":  "Avalon NJ",
+                     "url":  "https://avalonnj.cdn.coastalcameranetwork.com/New_Jersey/avalonnj.stream/index.m3u8",
+                     "lat":  39.07,
+                     "lon":  -74.69
+                 },
+                 {
+                     "id":  "nj-cape-may",
+                     "name":  "Cape May Cove NJ",
+                     "url":  "https://capemaycove.cdn.coastalcameranetwork.com/sunba/capemaycove/index.m3u8",
+                     "lat":  38.9,
+                     "lon":  -74.92
+                 }
+             ]
+}

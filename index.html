@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCEAN VIEW</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js"></script>
+<style>
+  :root {
+    --ink:#0a0e12; --foam:#f2f5f7; --buoy:#ffd23f; --rec:#ff3b3b;
+    --dim:rgba(242,245,247,0.55); --line:rgba(242,245,247,0.18);
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { height:100%; background:#000; color:var(--foam); font-family:var(--mono); overflow:hidden; }
+
+  /* always a 16:9 frame, letterboxed */
+  #collage {
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:min(100vw, 177.7778vh); height:min(56.25vw, 100vh);
+    display:block; background:var(--ink); touch-action:manipulation;
+  }
+
+  #hud {
+    position:fixed; top:0; left:0; right:0; z-index:20;
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+    padding:12px 16px; font-size:11px; letter-spacing:0.12em; text-transform:uppercase;
+    background:linear-gradient(rgba(10,14,18,0.85), rgba(10,14,18,0)); transition:opacity .4s ease;
+  }
+  .hud-hidden #hud, .hud-hidden #spotsbtn, .hud-hidden #spotlist, .hud-hidden #tunebtn, .hud-hidden #tune, .hud-hidden #keys { opacity:0; pointer-events:none; }
+  #hud .title { font-weight:700; }
+  #hud .title em { font-style:normal; color:var(--buoy); }
+  #hud .meta { color:var(--dim); text-align:right; }
+  #hud .meta b { color:var(--foam); font-weight:400; }
+  #hud .meta .rec { color:var(--rec); font-weight:700; display:none; }
+  #hud .btns { display:flex; gap:8px; }
+  #hud button {
+    background:none; border:1px solid var(--line); color:var(--foam); font-family:var(--mono);
+    font-size:10px; letter-spacing:0.12em; text-transform:uppercase; padding:6px 10px; cursor:pointer;
+  }
+  #hud button:hover { border-color:var(--foam); }
+  #hud button:focus-visible { outline:2px solid var(--buoy); outline-offset:2px; }
+  #hud button.on { border-color:var(--rec); color:var(--rec); }
+
+  #spotsbtn {
+    position:fixed; bottom:12px; left:14px; z-index:22;
+    background:rgba(10,14,18,0.8); border:1px solid var(--line); color:var(--foam);
+    font-family:var(--mono); font-size:10px; letter-spacing:0.14em; text-transform:uppercase;
+    padding:8px 12px; cursor:pointer; transition:opacity .4s ease;
+  }
+  #spotsbtn.open, #spotsbtn:hover { border-color:var(--buoy); }
+  #spotlist {
+    position:fixed; bottom:44px; left:14px; z-index:22; display:none;
+    background:rgba(10,14,18,0.92); border:1px solid var(--line);
+    padding:10px 14px; font-size:10px; letter-spacing:0.1em; text-transform:uppercase;
+    line-height:2.1; max-height:60vh; overflow-y:auto; min-width:230px;
+  }
+  #spotlist.open { display:block; }
+  #spotlist .row b { color:var(--buoy); font-weight:700; }
+  #spotlist .row i { font-style:normal; color:var(--dim); }
+  #tune {
+    position:fixed; bottom:44px; right:14px; z-index:22; display:none;
+    background:rgba(10,14,18,0.92); border:1px solid var(--line); padding:12px 14px;
+    font-size:10px; letter-spacing:0.12em; text-transform:uppercase; min-width:210px;
+  }
+  #tune.open { display:block; }
+  #tune { max-height:70vh; overflow-y:auto; min-width:240px; }
+  #tabbar { display:flex; gap:4px; border-bottom:1px solid var(--line); padding-bottom:8px; }
+  .tab-btn {
+    flex:1; background:none; border:1px solid var(--line); color:var(--dim); font-family:var(--mono);
+    font-size:9px; letter-spacing:0.1em; text-transform:uppercase; padding:5px 0; cursor:pointer;
+  }
+  .tab-btn.active { border-color:var(--buoy); color:var(--buoy); }
+  .tab { display:none; }
+  .tab.active { display:block; }
+  #tune label { display:block; color:var(--dim); margin:8px 0 2px; }
+  #soundbtn {
+    width:100%; margin-top:12px; background:none; border:1px solid var(--line); color:var(--foam);
+    font-family:var(--mono); font-size:10px; letter-spacing:0.12em; text-transform:uppercase; padding:7px 0; cursor:pointer;
+  }
+  #soundbtn.on { border-color:var(--buoy); color:var(--buoy); }
+  #solobig {
+    width:100%; margin-top:12px; background:none; border:1px solid var(--line); color:var(--foam);
+    font-family:var(--mono); font-size:10px; letter-spacing:0.12em; text-transform:uppercase; padding:7px 0; cursor:pointer;
+  }
+  #solobig.on { border-color:var(--buoy); color:var(--buoy); }
+  #daybtn {
+    width:100%; margin-top:8px; background:none; border:1px solid var(--line); color:var(--foam);
+    font-family:var(--mono); font-size:10px; letter-spacing:0.12em; text-transform:uppercase; padding:7px 0; cursor:pointer;
+  }
+  #daybtn.on { border-color:var(--buoy); color:var(--buoy); }
+  #rankbtn {
+    width:100%; margin-top:8px; background:none; border:1px solid var(--line); color:var(--foam);
+    font-family:var(--mono); font-size:10px; letter-spacing:0.12em; text-transform:uppercase; padding:7px 0; cursor:pointer;
+  }
+  #rankbtn.on { border-color:var(--buoy); color:var(--buoy); }
+  #oceanbtn, #energybtn, #scalebtn, #shufflebtn, #kioskbtn {
+    width:100%; margin-top:8px; background:none; border:1px solid var(--line); color:var(--foam);
+    font-family:var(--mono); font-size:10px; letter-spacing:0.12em; text-transform:uppercase; padding:7px 0; cursor:pointer;
+  }
+  #kioskbtn.on, #energybtn.on { border-color:var(--buoy); color:var(--buoy); }
+  #channels .ch.night .nm { color:var(--dim); }
+  #channels .ch .moon { color:var(--dim); }
+  #channels { margin-top:10px; border-top:1px solid var(--line); padding-top:8px; }
+  #channels .ch { display:flex; align-items:center; gap:6px; line-height:2; }
+  #channels .ch .nm { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #channels .ch .dt { color:var(--dim); }
+  #channels .ch .dt b { color:var(--buoy); font-weight:700; }
+  #channels .ch button {
+    background:none; border:1px solid var(--line); color:var(--dim); font-family:var(--mono);
+    font-size:9px; padding:2px 6px; cursor:pointer;
+  }
+  #channels .ch button.on { border-color:var(--buoy); color:var(--buoy); }
+  #tune label span { color:var(--buoy); float:right; }
+  #tune input[type=range] { width:100%; accent-color:var(--buoy); }
+  #tunebtn {
+    position:fixed; bottom:12px; right:14px; z-index:22;
+    background:rgba(10,14,18,0.8); border:1px solid var(--line); color:var(--foam);
+    font-family:var(--mono); font-size:10px; letter-spacing:0.14em; text-transform:uppercase;
+    padding:8px 12px; cursor:pointer; transition:opacity .4s ease;
+  }
+  #tunebtn.open, #tunebtn:hover { border-color:var(--buoy); }
+  #tapinfo {
+    position:fixed; z-index:23; display:none; pointer-events:none;
+    background:rgba(10,14,18,0.92); border-left:2px solid var(--buoy);
+    padding:6px 10px; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; line-height:1.8;
+    white-space:nowrap;
+  }
+  #tapinfo b { color:var(--buoy); font-weight:700; }
+
+  #boot {
+    position:fixed; inset:0; z-index:30; background:var(--ink);
+    display:flex; flex-direction:column; justify-content:center; align-items:center; padding:24px;
+  }
+  #boot.gone { display:none; }
+  #boot h1 { font-size:clamp(22px,5vw,44px); font-weight:700; letter-spacing:0.28em; text-transform:uppercase; margin-bottom:6px; }
+  #boot h1 span { color:var(--buoy); }
+  #boot .sub { color:var(--dim); font-size:11px; letter-spacing:0.14em; text-transform:uppercase; margin-bottom:28px; }
+  #bootlog { width:min(560px,92vw); max-height:46vh; overflow-y:auto; font-size:11px; line-height:1.9; border-top:1px solid var(--line); padding-top:14px; }
+  #bootlog .ok { color:var(--buoy); } #bootlog .bad { color:var(--dim); text-decoration:line-through; } #bootlog .info { color:var(--foam); }
+  #boot .retry { margin-top:22px; background:none; border:1px solid var(--foam); color:var(--foam); font-family:var(--mono); font-size:11px; letter-spacing:0.14em; text-transform:uppercase; padding:10px 18px; cursor:pointer; display:none; }
+
+  #bootbar { width:min(560px,92vw); margin:0 0 14px; }
+  #bootbar .track { height:6px; background:var(--line); overflow:hidden; }
+  #bootbar .fill { height:100%; width:0%; background:var(--buoy); transition:width .25s ease; }
+  #bootbar .stat { display:flex; justify-content:space-between; margin-top:6px; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:var(--dim); }
+  #bootbar .stat b { color:var(--foam); font-weight:400; }
+  #bootlog .rank { color:var(--dim); }
+  #bootlog .rank b { color:var(--buoy); font-weight:700; }
+  #bootlog .trying { color:var(--foam); }
+
+  #keys { position:fixed; bottom:10px; right:14px; z-index:21; font-size:10px; color:var(--dim); letter-spacing:0.1em; text-transform:uppercase; transition:opacity .4s ease; }
+
+  @media (prefers-reduced-motion: reduce) { #hud, #spotsbtn, #tunebtn, #keys { transition:none; } }
+</style>
+</head>
+<body>
+<canvas id="collage"></canvas>
+
+<div id="hud">
+  <div class="title">OCEAN<em>VIEW</em></div>
+  <div class="btns">
+    <button id="btnrec" title="Record 4K 16:9 webm">● REC 4K</button>
+    <button id="btnpng" title="Save PNG frame">PNG</button>
+  </div>
+  <div class="meta">
+    <span class="rec" id="recstat">● REC <b id="rectime">00:00</b> · </span>
+    <span id="livecount">—</span> LIVE · MAX <b id="maxwave">—</b> · RECOMPOSE <b id="countdown">30:00</b>
+  </div>
+</div>
+<button id="spotsbtn">▲ SPOTS</button>
+<div id="spotlist"></div>
+<button id="tunebtn">TUNE</button>
+<div id="tune">
+  <div id="tabbar">
+    <button class="tab-btn active" data-tab="image">IMAGE</button>
+    <button class="tab-btn" data-tab="fluid">FLUID</button>
+    <button class="tab-btn" data-tab="waves">WAVES</button>
+    <button class="tab-btn" data-tab="set">SET</button>
+  </div>
+  <div class="tab active" id="tab-image">
+    <label>PIXEL SIZE <span id="cellval">220</span></label>
+    <input type="range" id="cellslider" min="40" max="220" step="4" value="220">
+    <label>JITTER <span id="jitval">0.6</span></label>
+    <input type="range" id="jitslider" min="0" max="3" step="0.05" value="0.6">
+    <label>SATURATION <span id="satval">1.0</span></label>
+    <input type="range" id="satslider" min="0" max="1.6" step="0.05" value="1">
+    <button id="shufflebtn">SHUFFLE GRID</button>
+  </div>
+  <div class="tab" id="tab-fluid">
+    <label>FLUID <span id="fluidval">1.0</span></label>
+    <input type="range" id="fluidslider" min="0" max="2.5" step="0.05" value="1">
+    <label>CURL <span id="curlval">20</span></label>
+    <input type="range" id="curlslider" min="0" max="45" step="1" value="20">
+    <label>SPLAT <span id="splatval">6</span></label>
+    <input type="range" id="splatslider" min="1" max="30" step="1" value="6">
+    <label>SMEAR <span id="smearval">0.82</span></label>
+    <input type="range" id="smearslider" min="0" max="0.97" step="0.01" value="0.82">
+    <label>DECAY <span id="decayval">0.985</span></label>
+    <input type="range" id="decayslider" min="0.90" max="0.999" step="0.001" value="0.985">
+    <button id="energybtn">FORCE: HEIGHT</button>
+  </div>
+  <div class="tab" id="tab-waves">
+    <label>FREEFORM SEA (break the pixels) <span id="freeval">0.00</span></label>
+    <input type="range" id="freeslider" min="0" max="1" step="0.01" value="0">
+    <label>FREEFORM FLOW (drift) <span id="flowval">1.00</span></label>
+    <input type="range" id="flowslider" min="0" max="3" step="0.05" value="1">
+    <label>SWELL FORCE (sustained) <span id="swellval">1.0</span></label>
+    <input type="range" id="swellslider" min="0" max="3" step="0.05" value="1">
+    <label>REFRACT (swell warp) <span id="refrval">1.0</span></label>
+    <input type="range" id="refrslider" min="0" max="3" step="0.05" value="1">
+    <label>TEAR (crest row-shift) <span id="tearval">0.6</span></label>
+    <input type="range" id="tearslider" min="0" max="2" step="0.05" value="0.6">
+    <label>CHROMA SPLIT <span id="chromval">0.6</span></label>
+    <input type="range" id="chromslider" min="0" max="2" step="0.05" value="0.6">
+    <label>FOAM (crest whitewash) <span id="foamval">0.5</span></label>
+    <input type="range" id="foamslider" min="0" max="1.5" step="0.05" value="0.5">
+    <label>RINGS (pulse ripples) <span id="ringval">1.0</span></label>
+    <input type="range" id="ringslider" min="0" max="3" step="0.05" value="1">
+    <label>BLOCK SNAP (crest quantize) <span id="snapval">0.4</span></label>
+    <input type="range" id="snapslider" min="0" max="1" step="0.05" value="0.4">
+    <label>SET BREATH (whole-frame surge) <span id="surgeval">0.5</span></label>
+    <input type="range" id="surgeslider" min="0" max="1.5" step="0.05" value="0.5">
+  </div>
+  <div class="tab" id="tab-set">
+    <button id="rankbtn">RANK: BIGGEST WAVES</button>
+    <button id="oceanbtn">OCEAN: ALL</button>
+    <button id="daybtn" class="on">DAYLIGHT ONLY: ON</button>
+    <button id="solobig">SOLO EXTREME WAVE</button>
+    <label>RECOMPOSE MIN <span id="recval">30</span></label>
+    <input type="range" id="recslider" min="5" max="120" step="5" value="30">
+    <button id="kioskbtn">KIOSK: OFF</button>
+    <div id="channels"></div>
+  </div>
+</div>
+<div id="tapinfo"></div>
+<div id="keys">H HUD · F FULL · W FLUID · X SHUFFLE · B FREEFORM · R REC · S PNG · TAP A BLOCK</div>
+
+<div id="boot">
+  <h1>OCEAN<span>VIEW</span></h1>
+  <div class="sub">live cams in near-frame glitch, weighted by live ocean · fluid pulsed on each spot's wave period</div>
+  <div id="bootbar">
+    <div class="track"><div class="fill" id="bootfill"></div></div>
+    <div class="stat"><span id="bootphase">starting</span><span><b id="bootlive">0</b> / <b id="bootneed">10</b> live · <b id="boottried">0</b> tried</span></div>
+  </div>
+  <div id="bootlog"></div>
+  <button class="retry" id="retrybtn">Retry</button>
+</div>
+
+<script>
+/* ================= CONFIG ================= */
+const CAMS = [
+  { id:"margaret-river", name:"Margaret River WA", url:"https://stream.n1.au.swellnet.com/surfcams/margaret-river.stream/chunks.m3u8", lat:-33.98, lon:114.99 },
+  { id:"duranbah", name:"Duranbah NSW", url:"https://stream.n1.au.swellnet.com/surfcams/duranbah.stream/playlist.m3u8", lat:-28.16, lon:153.55 },
+  { id:"scarborough", name:"Scarborough WA", url:"https://stream.n1.au.swellnet.com/surfcams/scarborough.stream/chunks.m3u8", lat:-31.89, lon:115.75 },
+  { id:"middleton-bay", name:"Middleton Bay WA", url:"https://stream.n1.au.swellnet.com/surfcams/middleton-bay.stream/chunks.m3u8", lat:-35.03, lon:117.92 },
+  { id:"shark-island", name:"Shark Island NSW", url:"https://stream.n1.au.swellnet.com/surfcams/shark-island.stream/playlist.m3u8", lat:-34.06, lon:151.16 },
+  { id:"maroubra", name:"Maroubra NSW", url:"https://cams.cdn-surfline.com/cdn-au/au-maroubra/chunklist.m3u8", lat:-33.95, lon:151.26 },
+  { id:"bondi", name:"Bondi NSW", url:"https://cams.cdn-surfline.com/cdn-au/au-midbondi/chunklist.m3u8", lat:-33.89, lon:151.28 },
+  { id:"mooloolaba", name:"Mooloolaba QLD", url:"https://cams.cdn-surfline.com/cdn-au/au-mooloolaba/chunklist.m3u8", lat:-26.68, lon:153.12 },
+  { id:"alex-headland", name:"Alexandra Headland QLD", url:"https://cams.cdn-surfline.com/cdn-au/au-alexheadland/chunklist.m3u8", lat:-26.67, lon:153.11 },
+  { id:"ballina", name:"Ballina NSW", url:"https://streaming-au.coastalcoms.com/cw/ballinarmscamera.stream/chunklist.m3u8", lat:-28.87, lon:153.59 },
+  { id:"brunswick-heads", name:"Brunswick Heads NSW", url:"https://streaming-au.coastalcoms.com/cw/brunswickheadscamera.stream/chunklist.m3u8", lat:-28.54, lon:153.55 },
+  { id:"merimbula", name:"Merimbula NSW", url:"https://streaming-au.coastalcoms.com/cw/merimbulacamera.stream/chunklist.m3u8", lat:-36.89, lon:149.93 },
+  { id:"forster", name:"Forster NSW", url:"https://streaming-au.coastalcoms.com/cw/forstercamera.stream/chunklist.m3u8", lat:-32.18, lon:152.52 },
+  { id:"evans-head", name:"Evans Head NSW", url:"https://streaming-au.coastalcoms.com/cw/evansheadcamera.stream/chunklist_w811034302.m3u8", lat:-29.11, lon:153.43 },
+  { id:"biarritz", name:"Biarritz FR", url:"https://live.viewsurf.com/liveedge/biarritzgrandeplage_1_1.stream/playlist.m3u8", lat:43.48, lon:-1.56 },
+  { id:"anglet-1", name:"Anglet 1 FR", url:"https://live.viewsurf.com/liveedge/anglet01_1_1.stream/playlist.m3u8", lat:43.52, lon:-1.53 },
+  { id:"anglet-7", name:"Anglet 7 FR", url:"https://live.viewsurf.com/liveedge/anglet07_1_1.stream/playlist.m3u8", lat:43.53, lon:-1.52 },
+  { id:"boscombe", name:"Boscombe UK", url:"http://cams.cdn-surfline.com/cdn-int/uk-boscombe/playlist.m3u8", lat:50.72, lon:-1.84 },
+  { id:"westward-ho", name:"Westward Ho! UK", url:"https://camsecure.co/HLS/westho.m3u8", lat:51.04, lon:-4.24 },
+  { id:"jennettes-pier", name:"Jennette's Pier NC", url:"https://5a5f765a4fcc2.streamlock.net:1936/live/nh4.stream/playlist.m3u8", lat:35.91, lon:-75.59 },
+  { id:"southport-nc", name:"Southport NC", url:"http://5a5f765a4fcc2.streamlock.net:1935/live/spp.stream/playlist.m3u8", lat:33.91, lon:-78.02 },
+  { id:"narragansett", name:"Narragansett RI", url:"https://5c864aa99ee04.streamlock.net/surfcam/live.stream/chunklist_w1964635316.m3u8", lat:41.42, lon:-71.46 },
+  { id:"pawleys-island", name:"Pawleys Island SC", url:"https://5f4ad95bcff44.streamlock.net:444/pawleys1/pawleys1.stream/chunklist_w1289805910.m3u8", lat:33.43, lon:-79.12 },
+  { id:"myrtle-beach", name:"Myrtle Beach SC", url:"https://5ab0d1d85f91f.streamlock.net/Riptydz/cam-rt-beach.stream/playlist.m3u8", lat:33.69, lon:-78.88 },
+  { id:"venice-beach", name:"Venice Beach CA", url:"https://5ddd47d64e730.streamlock.net:444/westland/westland.stream/chunklist_w2084520689.m3u8", lat:33.99, lon:-118.47 },
+  { id:"tybee-island", name:"Tybee Island GA", url:"https://5ddd47d64e730.streamlock.net:444/mousepad1/mousepad1.stream/chunklist_w733151700.m3u8", lat:32.00, lon:-80.85 },
+  { id:"ormond-beach", name:"Ormond Beach FL", url:"https://streamer2.brownrice.com/coralsands1/coralsands1.stream/main_playlist.m3u8", lat:29.29, lon:-81.04 },
+  { id:"grayton-beach", name:"Grayton Beach FL", url:"https://59b69eab8875b.streamlock.net/live/Beach_Cam_01.stream/playlist.m3u8", lat:30.32, lon:-86.16 },
+  { id:"panama-city", name:"Panama City Beach FL", url:"https://5ed7b8fd7bf40.streamlock.net:444/holidayinnpcbbeach/holidayinnpcbbeachcam/chunklist_w1565534470.m3u8", lat:30.18, lon:-85.81 },
+  { id:"sao-vicente", name:"São Vicente BR", url:"http://egina.nethorizontes.tv:1935/lopesip/lopesip02.stream/playlist.m3u8", lat:-23.97, lon:-46.39 },
+  { id:"caorle", name:"Caorle IT", url:"https://cdn-003.whatsupcams.com/hls/it_caorle08.m3u8", lat:45.59, lon:12.89 },
+  { id:"zakynthos", name:"Zakynthos GR", url:"https://cdn-005.whatsupcams.com/hls/gr_zakynthos01.m3u8", lat:37.78, lon:20.90 },
+  { id:"mykonos", name:"Mykonos GR", url:"https://cdn-002.whatsupcams.com/hls/gr_mykonos01.m3u8", lat:37.45, lon:25.33 },
+  { id:"fenit", name:"Fenit IE", url:"https://cdn-004.whatsupcams.com/hls/ie_tralee01.m3u8", lat:52.27, lon:-9.86 },
+  { id:"ehukai-pipeline", name:"Ehukai / Pipeline HI", url:"https://outbound-production.explore.org/stream-production-4/.m3u8", lat:21.66, lon:-158.05 },
+  { id:"sagres", name:"Sagres PT", url:"https://camsecure.co/HLS/sagressholidays.m3u8", lat:37.01, lon:-8.95 },
+  { id:"ilfracombe", name:"Ilfracombe UK", url:"https://camsecure.co/HLS/ilfracombe2.m3u8", lat:51.21, lon:-4.11 },
+  { id:"viganj", name:"Viganj HR", url:"https://cdn-03.whatsupcams.com/hls/hr_viganj1.m3u8", lat:42.96, lon:17.1 },
+  { id:"igrane", name:"Igrane HR", url:"https://cdn-03.whatsupcams.com/hls/hr_igrane1.m3u8", lat:43.24, lon:17.14 },
+  { id:"korcula", name:"Korcula HR", url:"https://cdn-03.whatsupcams.com/hls/hr_korcula.m3u8", lat:42.96, lon:17.13 },
+  { id:"nin", name:"Nin HR", url:"https://cdn-03.whatsupcams.com/hls/hr_nin.m3u8", lat:44.24, lon:15.18 },
+  { id:"novalja", name:"Novalja HR", url:"https://cdn-03.whatsupcams.com/hls/hr_nov2.m3u8", lat:44.55, lon:14.88 },
+  { id:"novi-vinodolski", name:"Novi Vinodolski HR", url:"https://cdn-03.whatsupcams.com/hls/hr_novivinodolski1.m3u8", lat:45.13, lon:14.79 },
+  { id:"pag-caska", name:"Pag Caska HR", url:"https://cdn-03.whatsupcams.com/hls/hr_pagcaska01.m3u8", lat:44.51, lon:14.96 },
+  { id:"baska-voda", name:"Baska Voda HR", url:"https://cdn-03.whatsupcams.com/hls/hr_baskavoda3.m3u8", lat:43.36, lon:16.95 },
+  { id:"dubrovnik", name:"Dubrovnik HR", url:"https://cdn-03.whatsupcams.com/hls/hr_dubrovnik03.m3u8", lat:42.64, lon:18.11 },
+  { id:"stintino", name:"Stintino Sardinia IT", url:"https://cdn-03.whatsupcams.com/hls/it_stintino01.m3u8", lat:40.94, lon:8.23 },
+  { id:"san-vincenzo", name:"San Vincenzo IT", url:"https://cdn-002.whatsupcams.com/hls/it_sanvincenzo01.m3u8", lat:43.1, lon:10.54 },
+  { id:"bayahibe", name:"Bayahibe DO", url:"https://cdn-001.whatsupcams.com/hls/do_bayahibe01.m3u8", lat:18.37, lon:-68.84 },
+  { id:"dawlish-warren", name:"Dawlish Warren UK", url:"https://5a6f905a69aae.streamlock.net/DBC_Mount_Pleasant/Dawlish_Beach_Cams_Mount_Direct.stream/playlist.m3u8", lat:50.6, lon:-3.44 },
+  { id:"nazare", name:"Nazare Praia do Norte PT", url:"http://video-auth1.iol.pt:1935/beachcam/nazareparadonorte/chunks.m3u8", lat:39.61, lon:-9.09 },
+  { id:"supertubos", name:"Supertubos Peniche PT", url:"http://video-auth1.iol.pt:1935/beachcam/supertubos/chunks.m3u8", lat:39.34, lon:-9.37 },
+  { id:"santa-cruz", name:"Santa Cruz PT", url:"http://video-auth1.iol.pt:1935/beachcam/santacruz/chunks.m3u8", lat:39.14, lon:-9.38 },
+  { id:"snapper-rocks", name:"Snapper Rocks QLD", url:"https://stream.n1.au.swellnet.com/surfcams/snapper-rocks.stream/chunks.m3u8", lat:-28.16, lon:153.55 },
+  { id:"noosa-heads", name:"Noosa Heads QLD", url:"https://stream.n1.au.swellnet.com/surfcams/noosa-heads.stream/chunks.m3u8", lat:-26.38, lon:153.1 },
+  { id:"newcastle", name:"Newcastle NSW", url:"https://stream.n1.au.swellnet.com/surfcams/newcastle.stream/chunks.m3u8", lat:-32.93, lon:151.79 },
+  { id:"south-port", name:"South Port SA", url:"https://stream.n1.au.swellnet.com/surfcams/south-port.stream/chunks.m3u8", lat:-35.18, lon:138.47 },
+  { id:"hvide-sande", name:"Hvide Sande DK", url:"http://stream.waves4you.com:1935/w4y/ngrp:HSW.stream_all/chunklist_w693964615_b1300000.m3u8", lat:56.0, lon:8.12 },
+  { id:"aruba-bucuti", name:"Bucuti Beach AW", url:"http://video3.earthcam.com:1935/fecnetwork/4646.flv/playlist.m3u8", lat:12.55, lon:-70.05 },
+  { id:"aruba-druif", name:"Druif Beach AW", url:"http://video3.earthcam.com:1935/fecnetwork/6723.flv/playlist.m3u8", lat:12.54, lon:-70.04 },
+  { id:"aruba-eagle", name:"Eagle Beach AW", url:"http://video3.earthcam.com:1935/fecnetwork/4644.flv/playlist.m3u8", lat:12.56, lon:-70.05 },
+  { id:"st-croix", name:"St. Croix VI", url:"http://video4.earthcam.com/fecnetwork/4480.flv/playlist.m3u8", lat:17.75, lon:-64.7 },
+  { id:"san-juan", name:"San Juan PR", url:"http://video4.earthcam.com/fecnetwork/3698sanjuan1.flv/playlist.m3u8", lat:18.46, lon:-66.08 },
+  { id:"corpus-christi", name:"Corpus Christi TX", url:"http://video2.earthcam.com/fecnetwork/4496.flv/playlist.m3u8", lat:27.8, lon:-97.39 },
+  { id:"sandestin", name:"Sandestin FL", url:"http://video4.earthcam.com/fecnetwork/5663.flv/playlist.m3u8", lat:30.38, lon:-86.33 },
+  { id:"daytona", name:"Daytona Beach FL", url:"http://video2.earthcam.com/fecnetwork/5718.flv/playlist.m3u8", lat:29.23, lon:-81.0 },
+  { id:"folly-beach", name:"Folly Beach SC", url:"http://5a5f765a4fcc2.streamlock.net:1935/live/fb.stream/playlist.m3u8", lat:32.65, lon:-79.94 },
+  { id:"santa-monica", name:"Santa Monica Pier CA", url:"http://video4.earthcam.com/fecnetwork/6253.flv/playlist.m3u8", lat:34.01, lon:-118.5 },
+  { id:"miami-beach", name:"Miami Beach FL", url:"https://videos3.earthcam.com/fecnetwork/13862.flv/playlist.m3u8", lat:25.79, lon:-80.13 },
+  { id:"rio", name:"Rio de Janeiro BR", url:"https://videos3.earthcam.com/fecnetwork/6593.flv/playlist.m3u8", lat:-22.97, lon:-43.18 },
+  { id:"dubai-palm", name:"Dubai Palm AE", url:"http://video1.earthcam.com/fecnetwork/6405.flv/playlist.m3u8", lat:25.13, lon:55.12 },
+  { id:"thailand-coast", name:"Thailand Coast TH", url:"https://videos3.earthcam.com/fecnetwork/14329.flv/playlist.m3u8", lat:12.93, lon:100.88 },
+  { id:"bognor-regis", name:"Bognor Regis UK", url:"https://videos3.earthcam.com/fecnetwork/5288.flv/playlist.m3u8", lat:50.78, lon:-0.67 },
+  { id:"thassos", name:"Thassos GR", url:"http://video4.earthcam.com/fecnetwork/3792.flv/playlist.m3u8", lat:40.78, lon:24.71 },
+  { id:"vilamoura", name:"Vilamoura PT", url:"http://video-auth1.iol.pt:1935/beachcam/vilamoura/chunks.m3u8", lat:37.07, lon:-8.12 },
+  { id:"moruya", name:"Moruya NSW", url:"https://streaming-au.coastalcoms.com/cw/moruyacamera.stream/chunklist.m3u8", lat:-35.91, lon:150.16 },
+  { id:"port-macquarie", name:"Port Macquarie NSW", url:"https://streaming-au.coastalcoms.com/cw/portmacquariecamera.stream/chunklist.m3u8", lat:-31.43, lon:152.92 },
+  { id:"iluka", name:"Iluka NSW", url:"https://streaming-au.coastalcoms.com/cw/ilukacamera.stream/chunklist.m3u8", lat:-29.4, lon:153.35 },
+  { id:"swansea-tas", name:"Swansea TAS", url:"https://streaming-au.coastalcoms.com/cw/swanseacamera.stream/chunklist.m3u8", lat:-42.12, lon:148.08 },
+  /* Northeast US (Long Island / NYC / NJ) — Coastal Camera Network, URLs read from live player traffic.
+     lat/lon nudged offshore so Open-Meteo's coarse marine grid lands on water. No public CT stream found. */
+  { id:"ny-fire-island", name:"Fire Island NY", url:"https://fireislandfibccn.b-cdn.net/New_York/fireisland.stream/index.m3u8", lat:40.58, lon:-73.16 },
+  { id:"ny-lido", name:"Lido Beach NY", url:"https://lidobeach.cdn.coastalcameranetwork.com/New_York/lido.stream/index.m3u8", lat:40.55, lon:-73.62 },
+  { id:"ny-long-beach", name:"Long Beach NY", url:"https://longbeachnational2.cdn.coastalcameranetwork.com/New_York/longbeachnational2.stream/index.m3u8", lat:40.55, lon:-73.66 },
+  { id:"ny-skudin", name:"Long Beach NY (Skudin)", url:"https://skudinsurfcam.cdn.coastalcameranetwork.com/sunba/skudinsurfcam/index.m3u8", lat:40.55, lon:-73.68 },
+  { id:"ny-rockaway", name:"Rockaway Beach NY", url:"https://rockawaybeachoverview.cdn.coastalcameranetwork.com/New_York/rockawaybeachoverview.stream/index.m3u8", lat:40.54, lon:-73.83 },
+  { id:"ny-rockaway-92", name:"Rockaway 92nd St NY", url:"https://rockaway92nd.b-cdn.net/New_York/rockaway92nd.stream/index.m3u8", lat:40.54, lon:-73.81 },
+  { id:"nj-donovans", name:"Donovan's Reef, Sea Bright NJ", url:"https://donovans.cdn.coastalcameranetwork.com/New_Jersey/donovans.stream/index.m3u8", lat:40.36, lon:-73.93 },
+  { id:"nj-sea-bright", name:"Sea Bright NJ", url:"https://seabrightnj.cdn.coastalcameranetwork.com/sunba/seabrightNJ/index.m3u8", lat:40.36, lon:-73.95 },
+  { id:"nj-monmouth", name:"Monmouth Beach NJ", url:"https://monmouthbeachnj.cdn.coastalcameranetwork.com/sunba/monmouthbeachnj/index.m3u8", lat:40.33, lon:-73.95 },
+  { id:"nj-deal", name:"Deal NJ", url:"https://dealcasino.cdn.coastalcameranetwork.com/New_Jersey2/dealcasino.stream/index.m3u8", lat:40.25, lon:-73.97 },
+  { id:"nj-belmar", name:"Belmar NJ", url:"https://belmar.cdn.coastalcameranetwork.com/New_Jersey/easternlinesbelmar.stream/index.m3u8", lat:40.17, lon:-73.99 },
+  { id:"nj-manasquan", name:"Manasquan NJ", url:"https://manasquan.cdn.coastalcameranetwork.com/sunba/manasquan/index.m3u8", lat:40.09, lon:-73.99 },
+  { id:"nj-sea-girt", name:"Sea Girt NJ", url:"https://seagirt.cdn.coastalcameranetwork.com/New_Jersey/seagirt.stream/index.m3u8", lat:40.12, lon:-73.99 },
+  { id:"nj-lavallette", name:"Lavallette NJ", url:"https://lavallette.cdn.coastalcameranetwork.com/New_Jersey/lavallette.stream/index.m3u8", lat:39.96, lon:-74.02 },
+  { id:"nj-seaside-park", name:"Seaside Park NJ", url:"https://seasidepark.cdn.coastalcameranetwork.com/New_Jersey/seasidepark.stream/index.m3u8", lat:39.91, lon:-74.03 },
+  { id:"nj-harvey-cedars", name:"Harvey Cedars LBI NJ", url:"https://harveycedarsnj.cdn.coastalcameranetwork.com/New_Jersey/harveycedars.stream/index.m3u8", lat:39.69, lon:-74.09 },
+  { id:"nj-ship-bottom", name:"Ship Bottom LBI NJ", url:"https://driftingsands.cdn.coastalcameranetwork.com/sunba/driftingsands/index.m3u8", lat:39.64, lon:-74.14 },
+  { id:"nj-atlantic-city", name:"Atlantic City NJ", url:"https://acpier.cdn.coastalcameranetwork.com/New_Jersey/atlanticcity.stream/index.m3u8", lat:39.34, lon:-74.38 },
+  { id:"nj-ocean-city", name:"Ocean City NJ", url:"https://oceancity.cdn.coastalcameranetwork.com/New_Jersey/oceancity.stream/index.m3u8", lat:39.24, lon:-74.53 },
+  { id:"nj-avalon", name:"Avalon NJ", url:"https://avalonnj.cdn.coastalcameranetwork.com/New_Jersey/avalonnj.stream/index.m3u8", lat:39.07, lon:-74.69 },
+  { id:"nj-cape-may", name:"Cape May Cove NJ", url:"https://capemaycove.cdn.coastalcameranetwork.com/sunba/capemaycove/index.m3u8", lat:38.90, lon:-74.92 }
+];
+
+const LOW_POWER      = innerWidth < 900 || (navigator.hardwareConcurrency || 8) <= 4;
+const MAX_ACTIVE     = 10;                   // the set: first 10 cams to load, tried in wave-height order
+const RECOMPOSE_MS   = 30 * 60 * 1000;
+const HEALTH_TIMEOUT = LOW_POWER ? 30000 : 20000;   // proxy cold-start + cellular needs room
+const CHECK_PARALLEL = 4;                   // cams health-checked at once
+const MIN_WEIGHT     = 0.15;
+const CELL           = 96;            // block size at 1080p (scales with render height)
+const SWAP_SPREAD_MS = 6000;
+const GLITCH_RATE    = 0.003;
+const NEAR_JITTER    = 0.6;           // how far (in cells) a block may drift from its true position
+const CROP = { t:0.10, b:0.10, l:0.05, r:0.05 }; // fraction trimmed off each source edge — where timestamps/logos live
+const PROXY          = '/api/cam?u=';  // proxy route — set to '' to disable
+
+/* fluid */
+const SIM_W = 256, SIM_H = 144;       // velocity/pressure grid (16:9)
+let dyeInject        = 0.18;   // TUNE: FRESH          // fresh mosaic blended in per frame (lower = longer smear)
+let velDissipate     = 0.985;  // TUNE: DECAY
+const PRESSURE_ITERS = LOW_POWER ? 8 : 12;
+let curlAmt          = 20;     // TUNE: CURL
+let splatRad         = 0.006;  // TUNE: SPLAT
+
+/* export */
+const REC_W = 3840, REC_H = 2160, REC_FPS = 30, REC_BITRATE = 60e6;
+const MAX_LIVE_W = LOW_POWER ? 720 : 1280;              // normal-mode render cap
+
+/* ================= STATE ================= */
+const glc = document.getElementById('collage');
+const mosaic = document.createElement('canvas');
+const mctx = mosaic.getContext('2d');
+const bootEl = document.getElementById('boot'), bootlog = document.getElementById('bootlog');
+const retrybtn = document.getElementById('retrybtn'), footerEl = document.getElementById('spotlist');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let active = [], deadIds = new Set(), waves = {}, periods = {}, dirs = {}, nextRecompose = 0;
+let ownerCells = [];      // per active feed: indices of the cells it owns
+const DEFAULT_PERIOD = 8;  // seconds, when Open-Meteo has no period for a spot
+const DIR_JITTER_DEG = 15; // spread around each spot's true swell direction
+let W = 1280, H = 720, cellPx = CELL, cols = 0, rows = 0, cells = [];
+let fluidAmt = 1, cellBase = 220;    // synth knobs: fluid gain, block size at 1080p (starts at max)
+let soloBiggest = false;             // only the tallest spot drives the fluid
+let dayOnly = true;                  // start following the sun (toggle in SET tab)
+let rankSmallest = false;            // select & weight by the CALMEST seas instead
+let jitterAmt = NEAR_JITTER;         // TUNE: registration drift
+let satAmt = 1;                      // TUNE: color saturation
+let recomposeMin = 30;               // TUNE: minutes between recompositions
+let energyTrue = false;              // force from h^2 x period (real wave energy) instead of height
+let oceanFilter = 'ALL';             // basin filter
+let kiosk = false, kioskTimer = null;
+let shortSince = 0;                  // when the active set first dropped below budget
+const OCEANS = ['ALL','PACIFIC','ATLANTIC','MEDITERRANEAN','INDIAN'];
+function sunUp(lat, lon) {
+  // solar elevation approximation; > -6 deg (civil twilight) counts as light
+  const now = new Date(), rad = Math.PI / 180;
+  const start = Date.UTC(now.getUTCFullYear(), 0, 0);
+  const doy = (Date.now() - start) / 86400000;
+  const decl = -23.44 * Math.cos((360 / 365) * (doy + 10) * rad);
+  const solarHours = now.getUTCHours() + now.getUTCMinutes() / 60 + lon / 15;
+  const ha = (solarHours - 12) * 15;
+  const sinEl = Math.sin(lat * rad) * Math.sin(decl * rad) +
+                Math.cos(lat * rad) * Math.cos(decl * rad) * Math.cos(ha * rad);
+  return Math.asin(sinEl) / rad > 3;   // cameras need real sun, not twilight
+}
+function basinOf(lat, lon) {
+  if (lat > 30 && lat < 47 && lon > -6 && lon < 37) return 'MEDITERRANEAN';
+  if (lon >= 120 || lon < -100) return 'PACIFIC';
+  if (lon >= 20 && lon < 120) return 'INDIAN';
+  return 'ATLANTIC';
+}
+function energyOf(e) {
+  if (!energyTrue) return Math.min((e.wave ?? 0) / 4, 1);
+  const hh = (e.wave ?? 0), p = e.period ?? DEFAULT_PERIOD;
+  return Math.min((hh * hh * p) / 224, 1);   // normalized vs 4m @ 14s
+}
+const LUMA_MIN = 0.12;               // below this mean luminance a feed counts as night
+let muted = new Set(), soloed = new Set();   // per-cam channel state (cam ids)
+let fluidOn = true, recorder = null, recChunks = [], recStart = 0;
+let lastFrame = 0, maxWave = 0;
+
+const log = (msg, cls='info') => { const d = document.createElement('div'); d.className = cls; d.textContent = msg; bootlog.appendChild(d); bootlog.scrollTop = bootlog.scrollHeight; return d; };
+const fmtH = m => (m == null ? '?·?' : m.toFixed(1) + 'M');
+const fmtP = s => (s == null ? '' : Math.round(s) + 'S');
+const fmtD = d => (d == null ? '' : ['N','NE','E','SE','S','SW','W','NW'][Math.round(((d % 360) + 360) % 360 / 45) % 8]);
+const shuffle = a => { for (let i = a.length-1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; };
+
+/* ================= WEBGL FLUID ================= */
+const gl = glc.getContext('webgl', { alpha:false, antialias:false, preserveDrawingBuffer:true, depth:false, stencil:false });
+const extHF = gl && gl.getExtension('OES_texture_half_float');
+const extHFL = gl && gl.getExtension('OES_texture_half_float_linear');
+const HALF = extHF ? extHF.HALF_FLOAT_OES : null;
+let fluidOK = !!(gl && extHF && extHFL);
+
+const VS = `attribute vec2 aPos; varying vec2 vUv,vL,vR,vT,vB; uniform vec2 texelSize;
+void main(){ vUv=aPos*0.5+0.5; vL=vUv-vec2(texelSize.x,0.); vR=vUv+vec2(texelSize.x,0.); vT=vUv+vec2(0.,texelSize.y); vB=vUv-vec2(0.,texelSize.y); gl_Position=vec4(aPos,0.,1.); }`;
+const FS = {
+  copy: `precision highp float; varying vec2 vUv; uniform sampler2D uTex; void main(){ gl_FragColor=texture2D(uTex,vUv); }`,
+  splat: `precision highp float; varying vec2 vUv; uniform sampler2D uTarget; uniform float aspect,radius; uniform vec2 point; uniform vec3 color;
+    void main(){ vec2 p=vUv-point; p.x*=aspect; vec3 s=exp(-dot(p,p)/radius)*color; gl_FragColor=vec4(texture2D(uTarget,vUv).xyz+s,1.); }`,
+  advect: `precision highp float; varying vec2 vUv; uniform sampler2D uVelocity,uSource; uniform vec2 texelSize; uniform float dt,dissipation;
+    void main(){ vec2 c=vUv-dt*texture2D(uVelocity,vUv).xy*texelSize; gl_FragColor=dissipation*texture2D(uSource,c); }`,
+  divergence: `precision highp float; varying vec2 vUv,vL,vR,vT,vB; uniform sampler2D uVelocity;
+    void main(){ float L=texture2D(uVelocity,vL).x,R=texture2D(uVelocity,vR).x,T=texture2D(uVelocity,vT).y,B=texture2D(uVelocity,vB).y; vec2 C=texture2D(uVelocity,vUv).xy;
+    if(vL.x<0.)L=-C.x; if(vR.x>1.)R=-C.x; if(vT.y>1.)T=-C.y; if(vB.y<0.)B=-C.y; gl_FragColor=vec4(0.5*(R-L+T-B),0.,0.,1.); }`,
+  curl: `precision highp float; varying vec2 vUv,vL,vR,vT,vB; uniform sampler2D uVelocity;
+    void main(){ float L=texture2D(uVelocity,vL).y,R=texture2D(uVelocity,vR).y,T=texture2D(uVelocity,vT).x,B=texture2D(uVelocity,vB).x; gl_FragColor=vec4(0.5*(R-L-T+B),0.,0.,1.); }`,
+  vorticity: `precision highp float; varying vec2 vUv,vL,vR,vT,vB; uniform sampler2D uVelocity,uCurl; uniform float curl,dt;
+    void main(){ float L=texture2D(uCurl,vL).x,R=texture2D(uCurl,vR).x,T=texture2D(uCurl,vT).x,B=texture2D(uCurl,vB).x,C=texture2D(uCurl,vUv).x;
+    vec2 f=0.5*vec2(abs(T)-abs(B),abs(R)-abs(L)); f/=length(f)+0.0001; f*=curl*C; f.y*=-1.; gl_FragColor=vec4(texture2D(uVelocity,vUv).xy+f*dt,0.,1.); }`,
+  pressure: `precision highp float; varying vec2 vUv,vL,vR,vT,vB; uniform sampler2D uPressure,uDivergence;
+    void main(){ float L=texture2D(uPressure,vL).x,R=texture2D(uPressure,vR).x,T=texture2D(uPressure,vT).x,B=texture2D(uPressure,vB).x; gl_FragColor=vec4((L+R+B+T-texture2D(uDivergence,vUv).x)*0.25,0.,0.,1.); }`,
+  gradient: `precision highp float; varying vec2 vUv,vL,vR,vT,vB; uniform sampler2D uPressure,uVelocity;
+    void main(){ float L=texture2D(uPressure,vL).x,R=texture2D(uPressure,vR).x,T=texture2D(uPressure,vT).x,B=texture2D(uPressure,vB).x; gl_FragColor=vec4(texture2D(uVelocity,vUv).xy-vec2(R-L,T-B),0.,1.); }`,
+  /* sustained swell: every feed's wave train (direction, wavelength from period, amplitude from height)
+     stirs the WHOLE plane continuously. Mostly transverse (shear) force — it survives the pressure projection. */
+  swell: `precision highp float; varying vec2 vUv; uniform sampler2D uVelocity; uniform vec4 uW[10],uP[10]; uniform float uTime,uAspect,uForce,dt;
+    void main(){ vec2 q=vec2(vUv.x*uAspect,vUv.y); vec2 f=vec2(0.);
+      for(int i=0;i<10;i++){ vec4 w=uW[i]; float ph=dot(w.xy,q)*w.z-uTime*uP[i].x+uP[i].y; vec2 perp=vec2(-w.y,w.x); f+=(w.xy*0.5+perp)*cos(ph)*w.w; }
+      gl_FragColor=vec4(texture2D(uVelocity,vUv).xy+f*uForce*dt,0.,1.); }`,
+  /* final composite: interference of all wave trains + pulse rings warps / tears / splits / whitens the image.
+     Runs on the whole frame every frame, independent of the fluid, so effects persist across the entire plane. */
+  present: `precision highp float; varying vec2 vUv; uniform sampler2D uTex; uniform vec4 uW[10],uP[10],uR[6];
+    uniform float uTime,uAspect,uRefr,uTear,uChroma,uFoam,uRing,uSnap,uSurge,uRows,uFree,uFlow; uniform sampler2D uSea;
+    float hash(float n){ return fract(sin(n*127.1)*43758.5453); }
+    /* freeform sea: sample feed idx from the atlas, drifting along its own swell */
+    vec3 seaAt(float idx, vec4 w, vec2 wp, vec2 p, vec2 sh){
+      float ph=dot(w.xy,vec2(p.x*uAspect,p.y))*w.z-uTime*wp.x+wp.y;
+      vec2 pu=p+vec2(w.x/uAspect,w.y)*sin(ph)*0.03*uFlow+sh;
+      vec2 o=vec2(mod(idx,5.),1.-floor(idx/5.));
+      return texture2D(uSea,(o+clamp(pu,0.003,0.997))/vec2(5.,2.)).rgb; }
+    void main(){
+      vec2 q=vec2(vUv.x*uAspect,vUv.y); vec2 disp=vec2(0.); float crest=0.,tot=0.001;
+      for(int i=0;i<10;i++){ vec4 w=uW[i]; float ph=dot(w.xy,q)*w.z-uTime*uP[i].x+uP[i].y; float s=sin(ph); disp+=w.xy*s*w.w; crest+=s*w.w; tot+=w.w; }
+      crest/=tot; float peak=smoothstep(0.3,0.85,crest);
+      vec2 rd=vec2(0.); float rr=0.;
+      for(int j=0;j<6;j++){ vec4 r=uR[j]; if(r.w>0.){ vec2 d=q-vec2(r.x*uAspect,r.y); float l=length(d);
+        float ring=sin(l*34.-r.z*6.)*exp(-r.z*0.55)*exp(-l*1.1)*r.w; rd+=d/(l+0.001)*ring; rr+=abs(ring); } }
+      vec2 off=disp*0.010*uRefr+rd*0.022*uRing; off.x/=uAspect;
+      vec2 uv=vUv+off; uv=(uv-0.5)/(1.+uSurge)+0.5;
+      float n=mix(180.,26.,peak); vec2 g=vec2(n*uAspect,n); uv=mix(uv,(floor(uv*g)+0.5)/g,uSnap*peak*(1.-uFree));
+      float row=floor(uv.y*uRows); uv.x+=(hash(row+floor(uTime*6.))-0.5)*0.07*uTear*peak;
+      vec2 dn=disp/(length(disp)+0.0001); vec2 sh=dn*0.0045*uChroma*(0.3+abs(crest)+rr); sh.x/=uAspect;
+      vec3 col=vec3(texture2D(uTex,uv+sh).r,texture2D(uTex,uv).g,texture2D(uTex,uv-sh).b);
+      if(uFree>0.001){
+        /* each pixel belongs to whichever swell train is cresting there — regions are wave fronts, warped by the interference field */
+        vec2 q2=q+disp*0.05*uFlow; float s1=-1.,s2=-1.,i1=0.,i2=0.; vec4 w1=vec4(0.),w2=vec4(0.); vec2 p1=vec2(0.),p2=vec2(0.);
+        for(int i=0;i<10;i++){ vec4 w=uW[i]; if(w.w>0.){ float ph=dot(w.xy,q2)*w.z-uTime*uP[i].x+uP[i].y;
+          float sc=(0.35+w.w)*(0.5+0.5*sin(ph));
+          if(sc>s1){ s2=s1; i2=i1; w2=w1; p2=p1; s1=sc; i1=float(i); w1=w; p1=uP[i].xy; }
+          else if(sc>s2){ s2=sc; i2=float(i); w2=w; p2=uP[i].xy; } } }
+        vec3 c1=vec3(seaAt(i1,w1,p1,uv,sh).r,seaAt(i1,w1,p1,uv,vec2(0.)).g,seaAt(i1,w1,p1,uv,-sh).b);
+        vec3 c2=vec3(seaAt(i2,w2,p2,uv,sh).r,seaAt(i2,w2,p2,uv,vec2(0.)).g,seaAt(i2,w2,p2,uv,-sh).b);
+        col=mix(col,mix(c2,c1,smoothstep(0.,0.10,s1-s2)),uFree);
+      }
+      float fn=hash(floor(uv.x*230.)+floor(uv.y*130.)*57.+floor(uTime*9.));
+      col=mix(col,vec3(1.),uFoam*peak*0.42*fn); col+=rr*0.12*uRing;
+      gl_FragColor=vec4(col,1.); }`,
+  dye: `precision highp float; varying vec2 vUv; uniform sampler2D uVelocity,uDye,uMosaic; uniform vec2 texelSize; uniform float dt,inject;
+    void main(){ vec2 c=vUv-dt*texture2D(uVelocity,vUv).xy*texelSize; gl_FragColor=vec4(mix(texture2D(uDye,c).rgb,texture2D(uMosaic,vUv).rgb,inject),1.); }`
+};
+
+let P = {}, fbo = {}, quad, mosaicTex;
+function compile(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.error(gl.getShaderInfoLog(s)); fluidOK = false; } return s; }
+function program(fs) {
+  const p = gl.createProgram(); gl.attachShader(p, compile(gl.VERTEX_SHADER, VS)); gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p);
+  const u = {}; const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+  for (let i = 0; i < n; i++) { const name = gl.getActiveUniform(p, i).name; u[name.replace(/\[0\]$/, '')] = gl.getUniformLocation(p, name); }
+  return { p, u };
+}
+function makeFBO(w, h, type, filter) {
+  const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, type, null);
+  const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) fluidOK = false;
+  gl.viewport(0, 0, w, h); gl.clearColor(0,0,0,1); gl.clear(gl.COLOR_BUFFER_BIT);
+  return { t, f, w, h, tx: 1/w, ty: 1/h, bind(u) { gl.activeTexture(gl.TEXTURE0 + u); gl.bindTexture(gl.TEXTURE_2D, this.t); return u; } };
+}
+function makeDouble(w, h, type, filter) { let a = makeFBO(w,h,type,filter), b = makeFBO(w,h,type,filter); return { get r(){return a;}, get w(){return b;}, swap(){ [a,b]=[b,a]; }, tx:1/w, ty:1/h, W:w, H:h }; }
+function blit(target) {
+  if (target) { gl.bindFramebuffer(gl.FRAMEBUFFER, target.f); gl.viewport(0,0,target.w,target.h); }
+  else { gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0,0,glc.width,glc.height); }
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+}
+function use(prog, texel) { gl.useProgram(prog.p); gl.uniform2f(prog.u.texelSize, texel.tx, texel.ty); return prog; }
+
+function initGL() {
+  if (!gl) return;
+  quad = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  for (const k in FS) P[k] = program(FS[k]);
+  mosaicTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, mosaicTex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  if (fluidOK) {
+    fbo.vel = makeDouble(SIM_W, SIM_H, HALF, gl.LINEAR);
+    fbo.pre = makeDouble(SIM_W, SIM_H, HALF, gl.NEAREST);
+    fbo.div = makeFBO(SIM_W, SIM_H, HALF, gl.NEAREST);
+    fbo.curl = makeFBO(SIM_W, SIM_H, HALF, gl.NEAREST);
+  }
+  allocDye();
+}
+function allocDye() { if (!fluidOK) return; fbo.dye = makeDouble(W, H, HALF, gl.LINEAR); }
+
+function splat(x, y, dx, dy) {
+  if (!fluidOK) return;
+  const p = use(P.splat, fbo.vel);
+  gl.uniform1i(p.u.uTarget, fbo.vel.r.bind(0)); gl.uniform1f(p.u.aspect, W / H);
+  gl.uniform2f(p.u.point, x, y); gl.uniform3f(p.u.color, dx, dy, 0); gl.uniform1f(p.u.radius, splatRad);
+  blit(fbo.vel.w); fbo.vel.swap();
+}
+
+function fluidStep(dt) {
+  let p = use(P.curl, fbo.vel); gl.uniform1i(p.u.uVelocity, fbo.vel.r.bind(0)); blit(fbo.curl);
+  p = use(P.vorticity, fbo.vel); gl.uniform1i(p.u.uVelocity, fbo.vel.r.bind(0)); gl.uniform1i(p.u.uCurl, fbo.curl.bind(1));
+  gl.uniform1f(p.u.curl, curlAmt); gl.uniform1f(p.u.dt, dt); blit(fbo.vel.w); fbo.vel.swap();
+  p = use(P.divergence, fbo.vel); gl.uniform1i(p.u.uVelocity, fbo.vel.r.bind(0)); blit(fbo.div);
+  p = use(P.pressure, fbo.vel); gl.uniform1i(p.u.uDivergence, fbo.div.bind(0));
+  for (let i = 0; i < PRESSURE_ITERS; i++) { gl.uniform1i(p.u.uPressure, fbo.pre.r.bind(1)); blit(fbo.pre.w); fbo.pre.swap(); }
+  p = use(P.gradient, fbo.vel); gl.uniform1i(p.u.uPressure, fbo.pre.r.bind(0)); gl.uniform1i(p.u.uVelocity, fbo.vel.r.bind(1)); blit(fbo.vel.w); fbo.vel.swap();
+  p = use(P.advect, fbo.vel); gl.uniform1i(p.u.uVelocity, fbo.vel.r.bind(0)); gl.uniform1i(p.u.uSource, fbo.vel.r.bind(0));
+  gl.uniform1f(p.u.dt, dt); gl.uniform1f(p.u.dissipation, velDissipate); blit(fbo.vel.w); fbo.vel.swap();
+  p = use(P.dye, fbo.vel); gl.uniform1i(p.u.uVelocity, fbo.vel.r.bind(0)); gl.uniform1i(p.u.uDye, fbo.dye.r.bind(1));
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, mosaicTex); gl.uniform1i(p.u.uMosaic, 2);
+  gl.uniform1f(p.u.dt, dt); gl.uniform1f(p.u.inject, dyeInject); blit(fbo.dye.w); fbo.dye.swap();
+}
+
+/* wave-train state shared by the swell force pass and the final composite */
+let swellAmt = 1, refrAmt = 1, tearAmt = 0.6, chromAmt = 0.6, foamAmt = 0.5, ringAmt = 1, snapAmt = 0.4, surgeAmt = 0.5;
+const waveU = new Float32Array(40), waveP = new Float32Array(40), ringU = new Float32Array(24);
+let waveTime = 0, waveBreath = 0, rings = [];
+/* freeform sea: all feeds packed into one atlas (5x2 cells, slot = wave-train index) that the composite shader samples */
+let freeAmt = 0, flowAmt = 1, seaTex = null, slotEntries = [];
+const ATL_CW = 384, ATL_CH = 216;
+const atlas = document.createElement('canvas'); atlas.width = ATL_CW * 5; atlas.height = ATL_CH * 2;
+const atlasCtx = atlas.getContext('2d');
+function uploadAtlas() {
+  slotEntries.forEach((e, n) => {
+    const v = e.fc; if (!v) return;
+    const cw = v.width, ch = v.height, ar = ATL_CW / ATL_CH;
+    let sw = cw, sh = cw / ar; if (sh > ch) { sh = ch; sw = ch * ar; }
+    atlasCtx.drawImage(v, (cw-sw)/2, (ch-sh)/2, sw, sh, (n % 5) * ATL_CW, Math.floor(n / 5) * ATL_CH, ATL_CW, ATL_CH);
+  });
+  gl.activeTexture(gl.TEXTURE3);
+  if (!seaTex) {
+    seaTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, seaTex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  } else gl.bindTexture(gl.TEXTURE_2D, seaTex);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, atlas);
+  gl.activeTexture(gl.TEXTURE0);
+}
+function updateWaveUniforms(now, on) {
+  waveTime = now / 1000; waveU.fill(0); waveP.fill(0); waveBreath = 0; slotEntries = [];
+  if (reduceMotion) return;
+  let n = 0, breath = 0, totA = 0;
+  active.forEach((e, idx) => {
+    if (n >= 10 || !on(e)) return;
+    const T = Math.min(Math.max(e.period ?? DEFAULT_PERIOD, 3), 20);
+    const amp = 0.25 + 0.75 * energyOf(e);
+    const b = (e.dir != null ? e.dir + 180 : idx * 137.5) * Math.PI / 180;   // travel direction, screen-up = north
+    const lam = 0.16 + T * 0.028, k = 2 * Math.PI / lam, om = 2 * Math.PI / T * 1.5, ph0 = idx * 1.7;
+    waveU.set([Math.sin(b), Math.cos(b), k, amp], n * 4); waveP.set([om, ph0, 0, 0], n * 4);
+    breath += amp * Math.sin(om * waveTime + ph0); totA += amp; n++; slotEntries.push(e);
+  });
+  waveBreath = totA ? breath / totA : 0;
+}
+function pushRing(x, y, energy, now) {
+  if (ringAmt <= 0) return;
+  rings.push({ x, y, t0: now, amp: 0.4 + energy * 0.6 }); if (rings.length > 6) rings.shift();
+}
+function swellStep(dt) {
+  const p = use(P.swell, fbo.vel);
+  gl.uniform1i(p.u.uVelocity, fbo.vel.r.bind(0));
+  gl.uniform4fv(p.u.uW, waveU); gl.uniform4fv(p.u.uP, waveP);
+  gl.uniform1f(p.u.uTime, waveTime); gl.uniform1f(p.u.uAspect, W / H); gl.uniform1f(p.u.uForce, 120 * swellAmt); gl.uniform1f(p.u.dt, dt);
+  blit(fbo.vel.w); fbo.vel.swap();
+}
+function present(tex, now) {
+  ringU.fill(0);
+  rings = rings.filter(r => (now - r.t0) < 7000);
+  rings.forEach((r, i) => ringU.set([r.x, r.y, (now - r.t0) / 1000, r.amp], i * 4));
+  const p = use(P.present, { tx: 1/W, ty: 1/H });
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex); gl.uniform1i(p.u.uTex, 0);
+  gl.uniform4fv(p.u.uW, waveU); gl.uniform4fv(p.u.uP, waveP); gl.uniform4fv(p.u.uR, ringU);
+  gl.uniform1f(p.u.uTime, waveTime); gl.uniform1f(p.u.uAspect, W / H);
+  gl.uniform1f(p.u.uRefr, refrAmt); gl.uniform1f(p.u.uTear, tearAmt); gl.uniform1f(p.u.uChroma, chromAmt);
+  gl.uniform1f(p.u.uFoam, foamAmt); gl.uniform1f(p.u.uRing, ringAmt); gl.uniform1f(p.u.uSnap, snapAmt);
+  gl.uniform1f(p.u.uSurge, surgeAmt * 0.03 * waveBreath); gl.uniform1f(p.u.uRows, 90);
+  gl.uniform1f(p.u.uFree, seaTex && slotEntries.length ? freeAmt : 0); gl.uniform1f(p.u.uFlow, flowAmt);
+  gl.activeTexture(gl.TEXTURE3); if (seaTex) gl.bindTexture(gl.TEXTURE_2D, seaTex); gl.uniform1i(p.u.uSea, 3); gl.activeTexture(gl.TEXTURE0);
+  blit(null);
+}
+
+/* ================= RENDER SIZE ================= */
+function setRenderSize(w, h) {
+  const prime = () => { mctx.fillStyle = '#0a0e12'; mctx.fillRect(0, 0, w, h); };
+  setTimeout(prime, 0);
+  W = w; H = h; cellPx = Math.max(16, Math.round(cellBase * H / 1080));
+  mosaic.width = W; mosaic.height = H; glc.width = W; glc.height = H;
+  cols = Math.ceil(W / cellPx); rows = Math.ceil(H / cellPx);
+  const keep = cells.length === cols * rows && cells.length > 0;   // same grid → same block owners (no reshuffle on a resolution step)
+  if (!keep) cells = [];
+  if (gl) allocDye();
+  if (active.length && !keep) assignCells(false);
+}
+function fitLive() {
+  if (recorder) return;
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  let w = Math.min(Math.round(glc.clientWidth * dpr), liveCap); w -= w % 16;
+  setRenderSize(w, Math.round(w * 9 / 16));
+}
+addEventListener('resize', fitLive);
+
+/* ================= OPEN-METEO ================= */
+async function fetchBatch(cams, out) {
+  // one land-cell coordinate fails the whole multi-coord request, so on failure
+  // bisect: bad spots isolate themselves, everyone else still gets data
+  if (!cams.length) return;
+  try {
+    const url = `https://marine-api.open-meteo.com/v1/marine?latitude=${cams.map(c=>c.lat).join(',')}&longitude=${cams.map(c=>c.lon).join(',')}&current=wave_height,wave_period,wave_direction`;
+    const res = await fetch(url); if (!res.ok) throw new Error('marine api ' + res.status);
+    const data = await res.json(); if (data.error) throw new Error(data.reason);
+    const arr = Array.isArray(data) ? data : [data];
+    arr.forEach((d, i) => { out[cams[i].id] = d?.current?.wave_height ?? null; periods[cams[i].id] = d?.current?.wave_period ?? null; dirs[cams[i].id] = d?.current?.wave_direction ?? null; });
+  } catch (e) {
+    if (cams.length === 1) { out[cams[0].id] = null; periods[cams[0].id] = null; dirs[cams[0].id] = null; return; }
+    const mid = Math.ceil(cams.length / 2);
+    await fetchBatch(cams.slice(0, mid), out); await fetchBatch(cams.slice(mid), out);
+  }
+}
+async function fetchWaves(cams) { const out = {}; await fetchBatch(cams, out); return out; }
+
+/* ================= FEEDS ================= */
+function startFeed(cam, viaProxy) {
+  const srcUrl = viaProxy ? PROXY + encodeURIComponent(cam.url) : cam.url;
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.muted = true; video.playsInline = true; video.crossOrigin = 'anonymous'; video.style.display = 'none';
+    document.body.appendChild(video);
+    let settled = false, hls = null;
+    const cleanup = () => { try { hls?.destroy(); } catch(e){} video.remove(); };
+    const fail = () => { if (settled) return; settled = true; cleanup(); resolve(null); };
+    const timer = setTimeout(fail, HEALTH_TIMEOUT);
+    const checkFrame = () => {
+      if (settled) return;
+      try { const t = document.createElement('canvas'); t.width = t.height = 2; const tc = t.getContext('2d'); tc.drawImage(video,0,0,2,2); tc.getImageData(0,0,1,1); }
+      catch (e) { clearTimeout(timer); return fail(); }
+      clearTimeout(timer); settled = true; resolve({ video, hls });
+    };
+    video.addEventListener('loadeddata', () => { video.play().then(checkFrame).catch(()=>checkFrame()); }, { once:true });
+    if (video.canPlayType('application/vnd.apple.mpegurl')) { video.src = srcUrl; video.addEventListener('error', fail, { once:true }); }
+    else if (window.Hls && Hls.isSupported()) {
+      hls = new Hls({ enableWorker:true, maxBufferLength:12, backBufferLength:4,
+        manifestLoadingTimeOut:20000, levelLoadingTimeOut:20000, fragLoadingTimeOut:30000,
+        manifestLoadingMaxRetry:2, levelLoadingMaxRetry:4, fragLoadingMaxRetry:6,
+        startLevel:0, capLevelToPlayerSize:true });   // lowest variant first — blocks are 96px, resolution is wasted
+      hls.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) fail(); });
+      hls.loadSource(srcUrl); hls.attachMedia(video);
+    } else fail();
+  });
+}
+function stopEntry(e) { try { e.hls?.destroy(); } catch(x){} e.video?.remove(); }
+function watchEntry(entry) {
+  const onDead = () => {
+    entry.kill = null;
+    if (!active.includes(entry)) return;
+    deadIds.add(entry.cam.id); stopEntry(entry); active = active.filter(e => e !== entry);
+    if (!bootEl.classList.contains('gone')) log(`  ↓ ${entry.cam.name} dropped after passing — will backfill`, 'bad');
+    if (active.length) assignCells(true); updateHud(); renderFooter();
+  };
+  let netRetries = 0, mediaRetries = 0;
+  entry.kill = onDead;
+  entry.hls?.on(Hls.Events.ERROR, (_, d) => {
+    if (!d.fatal) return;
+    if (d.type === Hls.ErrorTypes.NETWORK_ERROR && netRetries++ < 3) { setTimeout(() => entry.hls?.startLoad(), 1500); return; }
+    if (d.type === Hls.ErrorTypes.MEDIA_ERROR && mediaRetries++ < 2) { entry.hls?.recoverMediaError(); return; }
+    onDead();
+  });
+  entry.video.addEventListener('error', onDead);
+}
+
+/* ================= CELLS ================= */
+function assignCells(animate) {
+  const n = cols * rows;
+  const vis = visibleEntries();
+  const weights = vis.map(i => rankSmallest ? 1 / Math.max(active[i].wave ?? 1, 0.2) : Math.max(active[i].wave ?? MIN_WEIGHT, MIN_WEIGHT));
+  const total = weights.reduce((s,w) => s+w, 0);
+  const pool = [];
+  vis.forEach((idx, k) => { const c = Math.round((weights[k]/total)*n); for (let q = 0; q < c; q++) pool.push(idx); });
+  while (pool.length < n) pool.push(vis[pool.length % vis.length]);
+  pool.length = n; shuffle(pool);
+  const fresh = !cells.length || cells.length !== n; const now = performance.now();
+  const next = [];
+  for (let i = 0; i < n; i++) {
+    const prev = fresh ? pool[i] : (cells[i].owner < active.length ? cells[i].owner : pool[i]);
+    next.push({ owner: pool[i], prevOwner: prev, ax: Math.random(), ay: Math.random(),
+      swapAt: (animate && !reduceMotion && !fresh) ? now + Math.random()*SWAP_SPREAD_MS : now });
+  }
+  cells = next;
+  ownerCells = active.map(() => []);
+  next.forEach((c, i) => ownerCells[c.owner].push(i));
+}
+
+/* ================= RENDER ================= */
+function drawMosaic(now) {
+  mctx.filter = satAmt === 1 ? 'none' : `saturate(${satAmt})`;
+  // no full clear: blocks whose video isn't ready keep their last good pixels
+  // instead of flashing green/black (decoder gaps render as green)
+  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+    const cell = cells[j*cols+i]; if (!cell) continue;
+    const entry = active[now >= cell.swapAt ? cell.owner : cell.prevOwner]; if (!entry) continue;
+    if (!entry.fc) continue;   // no decoded frame yet — skip, keep last pixels
+    const v = entry.fc, vw = v.width, vh = v.height;
+    if (!reduceMotion && Math.random() < GLITCH_RATE) { cell.ax = Math.random(); cell.ay = Math.random(); }
+    const x = i*cellPx, y = j*cellPx, w = Math.min(cellPx, W-x), h = Math.min(cellPx, H-y);
+    // entry.fc is already the cropped interior of the source (timestamps/watermarks trimmed)
+    const cx0 = 0, cy0 = 0, cw = vw, ch = vh;
+    const scale = Math.max(W/cw, H/ch), sw = w/scale, sh = h/scale;
+    const offX = (cw*scale - W)/2, offY = (ch*scale - H)/2;
+    const jx = (cell.ax - 0.5) * jitterAmt * sw, jy = (cell.ay - 0.5) * jitterAmt * sh;
+    const sx = cx0 + Math.min(Math.max((x + offX)/scale + jx, 0), cw - sw);
+    const sy = cy0 + Math.min(Math.max((y + offY)/scale + jy, 0), ch - sh);
+    mctx.drawImage(v, sx, sy, sw, sh, x, y, w, h);
+  }
+}
+
+/* Each feed is decoded ONCE per new video frame into a small cropped canvas (entry.fc); the mosaic
+   and the freeform atlas then copy from those canvases instead of pulling the <video> once per block. */
+const FC_W = 640;
+function refreshFeedCanvases() {
+  active.forEach(e => {
+    const v = e.video; if (!v || v.readyState < 2 || !v.videoWidth) return;
+    if (e.fc && v.currentTime === e.fcT) return;          // no new frame since last copy
+    const vw = v.videoWidth, vh = v.videoHeight;
+    const cx0 = vw*CROP.l, cy0 = vh*CROP.t, cw = vw*(1-CROP.l-CROP.r), ch = vh*(1-CROP.t-CROP.b);
+    const fh = Math.max(2, Math.round(FC_W * ch / cw));
+    if (!e.fc || e.fc.height !== fh) { e.fc = document.createElement('canvas'); e.fc.width = FC_W; e.fc.height = fh; e.fcx = e.fc.getContext('2d'); }
+    e.fcx.drawImage(v, cx0, cy0, cw, ch, 0, 0, FC_W, fh); e.fcT = v.currentTime;
+  });
+}
+/* adaptive resolution: if the frame loop can't hold ~40fps, step the render width down (blocks keep their owners) */
+let frameEma = 16, slowSince = 0, fastSince = 0, liveCap = MAX_LIVE_W, lastMosaic = 0;
+function adaptQuality(rawDt, now) {
+  frameEma += (rawDt - frameEma) * 0.05;
+  if (recorder || !bootEl.classList.contains('gone')) return;   // don't judge speed while streams are still loading
+  if (frameEma > 25 && liveCap > 480) { if (!slowSince) slowSince = now; else if (now - slowSince > 2500) { liveCap = Math.max(480, Math.round(liveCap * 0.8 / 16) * 16); slowSince = 0; fastSince = 0; frameEma = 16; fitLive(); } }
+  else slowSince = 0;
+  // headroom again for a while → climb back toward the full cap
+  if (frameEma < 15 && liveCap < MAX_LIVE_W) { if (!fastSince) fastSince = now; else if (now - fastSince > 20000) { liveCap = Math.min(MAX_LIVE_W, Math.round(liveCap * 1.25 / 16) * 16); fastSince = 0; fitLive(); } }
+  else fastSince = 0;
+}
+
+function render(now) {
+  requestAnimationFrame(render);
+  const rawDt = now - lastFrame;
+  const dt = Math.min(rawDt / 1000, 0.033) || 0.016; lastFrame = now;
+  if (!active.length || !cells.length || !gl) return;
+  if (rawDt > 0 && rawDt < 500) adaptQuality(rawDt, now);
+
+  let allowed = null;
+  if (soloBiggest && active.length) {
+    const top = rankSmallest
+      ? active.reduce((m,e) => ((e.wave ?? 99) < (m.wave ?? 99) ? e : m), active[0])
+      : active.reduce((m,e) => ((e.wave ?? -1) > (m.wave ?? -1) ? e : m), active[0]);
+    allowed = new Set([top.cam.id]);
+  } else if (soloed.size) allowed = soloed;
+  const on = e => !(allowed && !allowed.has(e.cam.id)) && !muted.has(e.cam.id) && !(dayOnly && e.luma < LUMA_MIN);
+  updateWaveUniforms(now, on);
+  // picture sources refresh at ~30Hz (video is ≤30fps); the fluid/composite still run every frame
+  if (now - lastMosaic >= 32) {
+    lastMosaic = now; refreshFeedCanvases();
+    if (freeAmt < 0.99) {
+      drawMosaic(now);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, mosaicTex);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, mosaic);
+    }
+    if (freeAmt > 0 && slotEntries.length) uploadAtlas();
+  }
+  if (fluidOK && fluidOn) {
+    // per-location pulses: each feed's blocks are pushed on that spot's own wave period,
+    // with force from that spot's own wave height
+    if (!reduceMotion && fluidAmt > 0) active.forEach((e, idx) => {
+      if (!on(e)) return;
+      if (now < e.nextPulse) return;
+      const period = e.period ?? DEFAULT_PERIOD;
+      e.nextPulse = now + period * 1000 * (0.8 + Math.random() * 0.4);
+      const energy = energyOf(e);
+      const mine = ownerCells[idx]; if (!mine || !mine.length) return;
+      const hits = 2 + Math.floor(energy * 5);
+      let plucked = false;
+      for (let k = 0; k < hits; k++) {
+        const ci = mine[Math.floor(Math.random() * mine.length)];
+        const cx = ((ci % cols) + 0.5) * cellPx / W, cy = 1 - ((Math.floor(ci / cols)) + 0.5) * cellPx / H;
+        // compass: screen-up is north. Open-Meteo gives the bearing the swell comes FROM,
+        // so the push travels the opposite way (+180°). Jittered a little so it isn't a laminar wall.
+        const m = fluidAmt * (400 + energy * 2200) * (0.6 + Math.random() * 0.8);
+        let dx, dy;
+        if (e.dir != null) {
+          const bearing = (e.dir + 180 + (Math.random() - 0.5) * 2 * DIR_JITTER_DEG) * Math.PI / 180;
+          dx = Math.sin(bearing); dy = Math.cos(bearing);
+        } else { const a = Math.random() * Math.PI * 2; dx = Math.cos(a); dy = Math.sin(a); }
+        splat(cx, cy, dx * m, dy * m);
+        if (!plucked) { pluck(e, cx); pushRing(cx, cy, energy, now); plucked = true; }
+      }
+    });
+    if (!reduceMotion && swellAmt > 0) swellStep(dt);
+    fluidStep(dt);
+    present(fbo.dye.r.t, now);
+  } else present(mosaicTex, now);
+
+  const remain = Math.max(nextRecompose - Date.now(), 0);
+  document.getElementById('countdown').textContent = `${String(Math.floor(remain/60000)).padStart(2,'0')}:${String(Math.floor(remain%60000/1000)).padStart(2,'0')}`;
+  if (recorder) { const s = Math.floor((now - recStart)/1000); document.getElementById('rectime').textContent = `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }
+}
+
+/* ================= WATCHDOG: night detection + frozen streams ================= */
+const lumaCanvas = document.createElement('canvas'); lumaCanvas.width = 24; lumaCanvas.height = 14;
+const lumaCtx = lumaCanvas.getContext('2d', { willReadFrequently: true });
+setInterval(() => {
+  let changed = false;
+  [...active].forEach(e => {
+    const v = e.video; if (!v || v.readyState < 2) return;
+    // frozen? currentTime should advance on a live stream
+    if (v.currentTime === e.lastT) { e.stalls++; } else { e.stalls = 0; }
+    e.lastT = v.currentTime;
+    if (e.stalls >= 3 && e.kill) { e.kill(); return; }   // ~15s with no new frames = dead feed
+    // brightness (night feeds stay in the set until the next recompose; daylight is judged at selection time)
+    try {
+      lumaCtx.drawImage(v, 0, 0, 24, 14);
+      const px = lumaCtx.getImageData(0, 0, 24, 14).data;
+      let sum = 0;
+      for (let i = 0; i < px.length; i += 4) sum += (px[i]*0.299 + px[i+1]*0.587 + px[i+2]*0.114);
+      const luma = sum / (px.length / 4) / 255;
+      if ((luma < LUMA_MIN) !== (e.luma < LUMA_MIN)) changed = true;
+      e.luma = luma;
+    } catch (err) {}
+  });
+  if (changed) renderChannels();
+}, 5000);
+function visibleEntries() { return active.map((e, i) => i); }   // fixed set: every loaded cam keeps its share of the frame
+
+/* ================= AUDIO: plucked strings (Karplus-Strong) ================= */
+/* Every fluid pulse is a pluck. Pitch <- wave period (long swell = low string),
+   loudness & brightness <- wave height, sustain <- period, stereo pan <- where
+   on screen the pluck landed. Muted / soloed channels are silent because pulses
+   are gated before they reach here. */
+let audioOn = false, actx = null, masterGain = null;
+const SCALES = {
+  'PENTATONIC': [0, 3, 5, 7, 10, 12, 15, 17, 19, 22],
+  'MAJOR':      [0, 2, 4, 5, 7, 9, 11, 12, 14, 16],
+  'MINOR':      [0, 2, 3, 5, 7, 8, 10, 12, 14, 15],
+  'OPEN D':     [0, 7, 12, 16, 19, 24, 28, 31, 36, 43]
+};
+let scaleName = 'PENTATONIC';
+let PENT = SCALES[scaleName];
+function initAudio() {
+  actx = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = actx.createGain(); masterGain.gain.value = 0.5;
+  const comp = actx.createDynamicsCompressor();
+  comp.threshold.value = -18; comp.ratio.value = 6;
+  masterGain.connect(comp); comp.connect(actx.destination);
+}
+function freqForPeriod(period) {
+  const p = Math.min(Math.max(period ?? DEFAULT_PERIOD, 2), 18);
+  const t = 1 - (p - 2) / 16;                      // long period -> low end
+  const deg = PENT[Math.round(t * (PENT.length - 1))];
+  return 82.41 * Math.pow(2, deg / 12);            // up from low E (E2)
+}
+function pluck(entry, panPos) {
+  if (!audioOn || !actx) return;
+  const energy = energyOf(entry);
+  const freq = freqForPeriod(entry.period);
+  const sr = actx.sampleRate, N = Math.round(sr / freq);
+  const buf = actx.createBuffer(1, N, sr), d = buf.getChannelData(0);
+  for (let i = 0; i < N; i++) d[i] = Math.random() * 2 - 1;   // the pick attack
+  const src = actx.createBufferSource(); src.buffer = buf;
+  const delay = actx.createDelay(1); delay.delayTime.value = 1 / freq;
+  const fb = actx.createGain();
+  fb.gain.value = 0.945 + 0.05 * Math.min((entry.period ?? DEFAULT_PERIOD) / 18, 1); // long swell rings longer
+  const lp = actx.createBiquadFilter(); lp.type = 'lowpass';
+  lp.frequency.value = 800 + energy * 4200;                    // big waves pluck brighter
+  const vel = actx.createGain(); vel.gain.value = 0.12 + energy * 0.5;
+  const pan = actx.createStereoPanner ? actx.createStereoPanner() : null;
+  if (pan) pan.pan.value = (panPos * 2 - 1) * 0.8;
+  src.connect(delay); delay.connect(lp); lp.connect(fb); fb.connect(delay);   // the string
+  delay.connect(vel); if (pan) { vel.connect(pan); pan.connect(masterGain); } else vel.connect(masterGain);
+  src.start();
+  const life = 2500 + (entry.period ?? DEFAULT_PERIOD) * 250;
+  vel.gain.setTargetAtTime(0, actx.currentTime + life / 1000, 0.3);
+  setTimeout(() => { try { src.stop(); src.disconnect(); delay.disconnect(); lp.disconnect(); fb.disconnect(); vel.disconnect(); pan?.disconnect(); } catch(e){} }, life + 1500);
+}
+
+/* ================= POINTER → FLUID + TAP ID ================= */
+/* Tap to identify only — the mouse never stirs the fluid. */
+const tapEl = document.getElementById('tapinfo');
+let tapTimer = null;
+glc.addEventListener('pointerup', e => {
+  const r = glc.getBoundingClientRect();
+  const i = Math.floor((e.clientX - r.left) / r.width * W / cellPx);
+  const j = Math.floor((e.clientY - r.top) / r.height * H / cellPx);
+  const cell = cells[j * cols + i]; if (!cell) return;
+  const entry = active[cell.owner]; if (!entry) return;
+  pluck(entry, (e.clientX - r.left) / r.width);
+  tapEl.innerHTML = `${entry.cam.name}<br><b>${fmtH(entry.wave)}</b> · ${fmtP(entry.period) || '—'} · ${fmtD(entry.dir) || '—'}`;
+  tapEl.style.display = 'block';
+  const pad = 12, tw = tapEl.offsetWidth || 160, th = tapEl.offsetHeight || 40;
+  tapEl.style.left = Math.min(Math.max(e.clientX - tw/2, pad), innerWidth - tw - pad) + 'px';
+  tapEl.style.top  = (e.clientY - th - 18 > pad ? e.clientY - th - 18 : e.clientY + 18) + 'px';
+  clearTimeout(tapTimer); tapTimer = setTimeout(() => tapEl.style.display = 'none', 4000);
+});
+
+/* ================= EXPORT ================= */
+function startRec() {
+  if (recorder) return;
+  setRenderSize(REC_W, REC_H);
+  const stream = glc.captureStream(REC_FPS);
+  const mime = ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(m => MediaRecorder.isTypeSupported(m));
+  recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: REC_BITRATE });
+  recChunks = []; recorder.ondataavailable = e => { if (e.data.size) recChunks.push(e.data); };
+  recorder.onstop = () => {
+    const blob = new Blob(recChunks, { type:'video/webm' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `oceanview-4k-${new Date().toISOString().replace(/[:.]/g,'-')}.webm`; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    recorder = null; document.getElementById('recstat').style.display = 'none';
+    document.getElementById('btnrec').classList.remove('on'); fitLive();
+  };
+  recorder.start(1000); recStart = performance.now();
+  document.getElementById('recstat').style.display = 'inline'; document.getElementById('btnrec').classList.add('on');
+}
+function stopRec() { if (recorder) recorder.stop(); }
+function savePNG() {
+  const a = document.createElement('a'); a.href = glc.toDataURL('image/png');
+  a.download = `oceanview-${W}x${H}-${new Date().toISOString().replace(/[:.]/g,'-')}.png`; a.click();
+}
+document.getElementById('btnrec').addEventListener('click', () => recorder ? stopRec() : startRec());
+document.getElementById('btnpng').addEventListener('click', savePNG);
+
+/* ================= HUD & FOOTER ================= */
+function updateHud() {
+  document.getElementById('livecount').textContent = active.length;
+  maxWave = active.reduce((m,e) => Math.max(m, e.wave ?? 0), 0);
+  document.getElementById('maxwave').textContent = fmtH(maxWave || null);
+}
+function renderFooter() {
+  const sorted = [...active].sort((a,b) => (b.wave ?? 0)-(a.wave ?? 0));
+  footerEl.innerHTML = sorted
+    .map((e,i) => `<div class="row">${i+1}. ${e.cam.name} <b>${fmtH(e.wave)}</b> <i>${fmtP(e.period)} ${fmtD(e.dir)}</i></div>`).join('');
+  document.getElementById('spotsbtn').textContent = `▲ ${active.length} SPOTS`;
+  renderChannels();
+}
+document.getElementById('spotsbtn').addEventListener('click', () => {
+  footerEl.classList.toggle('open');
+  document.getElementById('spotsbtn').classList.toggle('open');
+});
+/* ---------- tune panel ---------- */
+document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + btn.dataset.tab));
+}));
+document.getElementById('tunebtn').addEventListener('click', () => {
+  document.getElementById('tune').classList.toggle('open');
+  document.getElementById('tunebtn').classList.toggle('open');
+});
+document.getElementById('fluidslider').addEventListener('input', e => {
+  fluidAmt = parseFloat(e.target.value);
+  document.getElementById('fluidval').textContent = fluidAmt.toFixed(2);
+});
+document.getElementById('cellslider').addEventListener('input', e => {
+  cellBase = parseInt(e.target.value);
+  document.getElementById('cellval').textContent = cellBase;
+  cellPx = Math.max(16, Math.round(cellBase * H / 1080));
+  cols = Math.ceil(W / cellPx); rows = Math.ceil(H / cellPx);
+  cells = []; if (active.length) assignCells(false);
+});
+document.getElementById('curlslider').addEventListener('input', e => { curlAmt = parseFloat(e.target.value); document.getElementById('curlval').textContent = curlAmt; });
+document.getElementById('splatslider').addEventListener('input', e => { splatRad = parseFloat(e.target.value) / 1000; document.getElementById('splatval').textContent = e.target.value; });
+document.getElementById('smearslider').addEventListener('input', e => { const s = parseFloat(e.target.value); dyeInject = Math.max(1 - s, 0.03); document.getElementById('smearval').textContent = s.toFixed(2); });
+document.getElementById('decayslider').addEventListener('input', e => { velDissipate = parseFloat(e.target.value); document.getElementById('decayval').textContent = velDissipate.toFixed(3); });
+[['swell','swellAmt','swellval',v=>swellAmt=v],['refr','refrAmt','refrval',v=>refrAmt=v],['tear','tearAmt','tearval',v=>tearAmt=v],
+ ['chrom','chromAmt','chromval',v=>chromAmt=v],['foam','foamAmt','foamval',v=>foamAmt=v],['ring','ringAmt','ringval',v=>ringAmt=v],
+ ['free','freeAmt','freeval',v=>freeAmt=v],['flow','flowAmt','flowval',v=>flowAmt=v],
+ ['snap','snapAmt','snapval',v=>snapAmt=v],['surge','surgeAmt','surgeval',v=>surgeAmt=v]].forEach(([id,,valId,set]) => {
+  document.getElementById(id + 'slider').addEventListener('input', e => { const v = parseFloat(e.target.value); set(v); document.getElementById(valId).textContent = v.toFixed(2); });
+});
+document.getElementById('solobig').addEventListener('click', () => {
+  soloBiggest = !soloBiggest;
+  document.getElementById('solobig').classList.toggle('on', soloBiggest);
+});
+document.getElementById('rankbtn').addEventListener('click', () => {
+  rankSmallest = !rankSmallest;
+  const b = document.getElementById('rankbtn');
+  b.classList.toggle('on', rankSmallest);
+  b.textContent = rankSmallest ? 'RANK: SMALLEST WAVES' : 'RANK: BIGGEST WAVES';
+  deadIds = new Set(); nextRecompose = Date.now();   // rebuild the set now
+});
+document.getElementById('oceanbtn').addEventListener('click', () => {
+  oceanFilter = OCEANS[(OCEANS.indexOf(oceanFilter) + 1) % OCEANS.length];
+  document.getElementById('oceanbtn').textContent = 'OCEAN: ' + oceanFilter;
+  deadIds = new Set(); nextRecompose = Date.now();
+});
+document.getElementById('energybtn').addEventListener('click', () => {
+  energyTrue = !energyTrue;
+  const b = document.getElementById('energybtn');
+  b.classList.toggle('on', energyTrue);
+  b.textContent = energyTrue ? 'FORCE: H²×PERIOD' : 'FORCE: HEIGHT';
+});
+document.getElementById('shufflebtn').addEventListener('click', () => {
+  if (active.length) assignCells(true);   // same cell counts per feed, new positions
+});
+document.getElementById('kioskbtn').addEventListener('click', () => {
+  kiosk = !kiosk;
+  const b = document.getElementById('kioskbtn');
+  b.classList.toggle('on', kiosk); b.textContent = kiosk ? 'KIOSK: ON' : 'KIOSK: OFF';
+  clearInterval(kioskTimer);
+  if (kiosk) kioskTimer = setInterval(() => {
+    const r = Math.random();
+    if (r < 0.3) { fluidAmt = 0.4 + Math.random() * 1.4; document.getElementById('fluidslider').value = fluidAmt; document.getElementById('fluidval').textContent = fluidAmt.toFixed(2); }
+    else if (r < 0.5) { curlAmt = 5 + Math.random() * 30; document.getElementById('curlslider').value = curlAmt; document.getElementById('curlval').textContent = Math.round(curlAmt); }
+    else if (r < 0.7) { cellBase = 56 + Math.round(Math.random() * 30) * 4; document.getElementById('cellslider').value = cellBase; document.getElementById('cellval').textContent = cellBase; cellPx = Math.max(16, Math.round(cellBase * H / 1080)); cols = Math.ceil(W / cellPx); rows = Math.ceil(H / cellPx); cells = []; if (active.length) assignCells(false); }
+    else if (r < 0.85) { jitterAmt = Math.random() * 1.6; document.getElementById('jitslider').value = jitterAmt; document.getElementById('jitval').textContent = jitterAmt.toFixed(2); }
+    else if (active.length) assignCells(true);
+  }, 40000);
+});
+document.getElementById('jitslider').addEventListener('input', e => { jitterAmt = parseFloat(e.target.value); document.getElementById('jitval').textContent = jitterAmt.toFixed(2); });
+document.getElementById('satslider').addEventListener('input', e => { satAmt = parseFloat(e.target.value); document.getElementById('satval').textContent = satAmt.toFixed(2); });
+document.getElementById('recslider').addEventListener('input', e => {
+  recomposeMin = parseInt(e.target.value);
+  document.getElementById('recval').textContent = recomposeMin;
+  nextRecompose = Math.min(nextRecompose, Date.now() + recomposeMin * 60000);
+});
+document.getElementById('daybtn').addEventListener('click', () => {
+  dayOnly = !dayOnly;
+  const b = document.getElementById('daybtn');
+  b.classList.toggle('on', dayOnly); b.textContent = dayOnly ? 'DAYLIGHT ONLY: ON' : 'DAYLIGHT ONLY: OFF';
+  if (active.length) { assignCells(true); }
+  renderChannels();
+  deadIds = new Set(); nextRecompose = Date.now();   // reselect the set under the new rule
+});
+function renderChannels() {
+  const box = document.getElementById('channels');
+  const sorted = [...active].sort((a,b) => (b.wave ?? 0)-(a.wave ?? 0));
+  box.innerHTML = sorted.map(e => {
+    const id = e.cam.id;
+    const night = e.luma < LUMA_MIN;
+    return `<div class="ch ${night ? 'night' : ''}" data-id="${id}">
+      <span class="nm">${e.cam.name}</span>${night ? '<span class="moon">☾</span>' : ''}
+      <span class="dt"><b>${fmtH(e.wave)}</b> ${fmtP(e.period)} ${fmtD(e.dir)}</span>
+      <button class="mu ${muted.has(id) ? 'on' : ''}">M</button>
+      <button class="so ${soloed.has(id) ? 'on' : ''}">S</button>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('.ch').forEach(row => {
+    const id = row.dataset.id;
+    row.querySelector('.mu').addEventListener('click', () => { muted.has(id) ? muted.delete(id) : muted.add(id); renderChannels(); });
+    row.querySelector('.so').addEventListener('click', () => { soloed.has(id) ? soloed.delete(id) : soloed.add(id); renderChannels(); });
+  });
+}
+
+/* ================= CYCLE ================= */
+let bootTried = 0;
+function setBoot(phase, pct) {
+  if (phase != null) document.getElementById('bootphase').textContent = phase;
+  if (pct != null) document.getElementById('bootfill').style.width = Math.min(Math.max(pct, 0), 100) + '%';
+  document.getElementById('bootlive').textContent = active.length;
+  document.getElementById('boottried').textContent = bootTried;
+}
+const bootPct = () => 12 + 88 * Math.min(active.length / MAX_ACTIVE, 1);
+async function recompose(isBoot) {
+  if (isBoot) { bootTried = 0; setBoot('fetching wave heights', 4); log('· fetching wave heights (open-meteo marine)…'); }
+  try { waves = await fetchWaves(CAMS); if (isBoot) log('· wave data received', 'ok'); }
+  catch (e) { if (isBoot) log('· wave data failed — equal weighting', 'bad'); }
+  let pool = CAMS.filter(c => !deadIds.has(c.id))
+    .filter(c => oceanFilter === 'ALL' || basinOf(c.lat, c.lon) === oceanFilter);
+  if (dayOnly) { const lit = pool.filter(c => sunUp(c.lat, c.lon)); if (lit.length >= 3) pool = lit; }
+  const ranked = pool
+    .map(c => ({ ...c, wave: waves[c.id] ?? null }))
+    .sort((a,b) => rankSmallest ? (a.wave ?? 99)-(b.wave ?? 99) : (b.wave ?? 0)-(a.wave ?? 0));
+  if (isBoot) {
+    setBoot('ordering by wave height', 9);
+    log(`· ordered ${ranked.length} cams by ${rankSmallest ? 'smallest' : 'biggest'} wave height:`);
+    ranked.slice(0, 14).forEach((c, i) => { const d = log(`   ${String(i+1).padStart(2,'0')}  ${c.name}  ${fmtH(c.wave)}`, 'rank'); });
+    if (ranked.length > 14) log(`   … +${ranked.length - 14} more in reserve`, 'rank');
+    setBoot('trying cameras', 12);
+  }
+  const wantedIds = new Set(ranked.slice(0, MAX_ACTIVE).map(c => c.id)); const keep = [];
+  active.forEach(e => { if (wantedIds.has(e.cam.id)) { e.wave = waves[e.cam.id] ?? e.wave; e.period = periods[e.cam.id] ?? e.period; e.dir = dirs[e.cam.id] ?? e.dir; keep.push(e); } else stopEntry(e); });
+  active = keep;
+  const haveIds = new Set(active.map(e => e.cam.id));
+  const queue = ranked.filter(c => !haveIds.has(c.id));
+  const probe = async (cam) => {
+    const line = isBoot ? log(`· trying ${cam.name} … ${fmtH(cam.wave)}${PROXY ? '  direct+proxy…' : ''}`, 'trying') : null;
+    // race direct and proxied; first to deliver a readable frame wins, the loser is torn down
+    const attempts = [startFeed(cam, false)]; if (PROXY) attempts.push(startFeed(cam, true));
+    let feed = null;
+    await new Promise(res => { let left = attempts.length; attempts.forEach(p => p.then(f => {
+      if (f && !feed) { feed = f; res(); } else if (f) { try { f.hls?.destroy(); } catch(x){} f.video.remove(); }
+      if (--left === 0) res(); })); });
+    if (feed && active.length < MAX_ACTIVE) {
+      const entry = { cam, video: feed.video, hls: feed.hls, wave: cam.wave, period: periods[cam.id], dir: dirs[cam.id], nextPulse: 0, luma: 1, lastT: -1, stalls: 0 };
+      watchEntry(entry); active.push(entry);
+      if (line) { line.className = 'ok'; line.textContent = `· ${cam.name} … ${fmtH(cam.wave)}  LIVE`; }
+      if (!isBoot) { assignCells(true); updateHud(); renderFooter(); }
+    } else if (feed) { try { feed.hls?.destroy(); } catch(x){} feed.video.remove(); if (line) line.textContent = `· ${cam.name} … ${fmtH(cam.wave)}  (spare)`; }
+    else { deadIds.add(cam.id); if (line) { line.className = 'bad'; line.textContent = `· ${cam.name} … ${fmtH(cam.wave)}  DEAD`; } }
+    if (isBoot) { bootTried++; setBoot(null, bootPct()); }
+  };
+  while (queue.length && active.length < MAX_ACTIVE) {
+    await Promise.all(queue.splice(0, CHECK_PARALLEL).map(probe));
+  }
+  if (isBoot) setBoot(active.length >= MAX_ACTIVE ? 'set locked' : 'partial set', 100);
+  if (!active.length) {
+    log(''); log('NO FEEDS SURVIVED — streams may be dead or CORS-blocked from this origin.', 'bad'); log('Set PROXY, or refresh the cam list.', 'bad');
+    retrybtn.style.display = 'inline-block'; return false;
+  }
+  assignCells(!isBoot); updateHud(); renderFooter(); nextRecompose = Date.now() + recomposeMin * 60000; return true;
+}
+let recomposeTimer = null;
+async function boot() {
+  retrybtn.style.display = 'none'; bootlog.innerHTML = ''; deadIds = new Set();
+  document.getElementById('bootneed').textContent = MAX_ACTIVE; setBoot('starting', 0);
+  log(`· ${CAMS.length} cams in roster · activating top ${MAX_ACTIVE} by wave height${LOW_POWER ? ' · low-power device' : ''}`);
+  if (!gl) log('· WebGL unavailable — cannot render', 'bad');
+  else if (!fluidOK) log('· half-float textures unsupported — fluid overlay disabled', 'bad');
+  const ok = await recompose(true);
+  // the set stays fixed until the recompose timer (or a setting change) asks for a new one
+  if (ok) { setTimeout(() => bootEl.classList.add('gone'), 600); if (!recomposeTimer) recomposeTimer = setInterval(() => {
+      if (Date.now() >= nextRecompose) { deadIds = new Set(); recompose(false); }
+    }, 5000); }
+}
+retrybtn.addEventListener('click', boot);
+
+/* ================= KEYS ================= */
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (k === 'h') document.body.classList.toggle('hud-hidden');
+  if (k === 'f') document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+  if (k === 'w') fluidOn = !fluidOn;
+  if (k === 'r') recorder ? stopRec() : startRec();
+  if (k === 's') savePNG();
+  if (k === 'x') { if (active.length) assignCells(true); }
+  if (k === 'b') {   // toggle freeform sea
+    freeAmt = freeAmt > 0.5 ? 0 : 1;
+    document.getElementById('freeslider').value = freeAmt; document.getElementById('freeval').textContent = freeAmt.toFixed(2);
+  }
+});
+
+initGL();
+fitLive();
+requestAnimationFrame(render);
+boot();
+</script>
+</body>
+</html>

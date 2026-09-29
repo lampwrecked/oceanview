@@ -1,0 +1,3 @@
+{
+  "functions": { "api/cam.js": { "maxDuration": 30 } }
+}
