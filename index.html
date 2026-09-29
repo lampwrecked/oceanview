@@ -158,6 +158,7 @@
   #studio .st-bar { height:5px; background:var(--line); margin-top:10px; }
   #studio #stfill { height:100%; width:0%; background:var(--buoy); transition:width .2s ease; }
   #studio #stmsg { margin-top:7px; color:var(--dim); }
+  #studio #stlog { margin-top:5px; color:var(--dim); white-space:pre; overflow:hidden; text-overflow:ellipsis; font-size:9px; letter-spacing:0.06em; text-transform:none; }
   .hud-hidden #studio { opacity:0; pointer-events:none; }
   #bootbar { width:min(560px,92vw); margin:0 0 14px; }
   #bootbar .track { height:6px; background:var(--line); overflow:hidden; }
@@ -262,6 +263,7 @@
   </div>
   <div class="st-bar"><div id="stfill"></div></div>
   <div id="stmsg">waiting for cams…</div>
+  <div id="stlog"></div>
 </div>
 <div id="tapinfo"></div>
 <div id="keys">H HUD · F FULL · W FLUID · X SHUFFLE · B FREEFORM · R REC · S PNG · TAP A BLOCK</div>
@@ -751,8 +753,13 @@ function startFeed(cam, viaProxy) {
 function stopEntry(e) { try { e.hls?.destroy(); } catch(x){} e.video?.remove(); }
 function watchEntry(entry) {
   const onDead = () => {
+    if (!active.includes(entry)) { entry.kill = null; return; }
+    if (studioHold) {   // recording: never drop a feed from the set — keep it, keep whatever it recorded, and keep nudging it
+      studioEvent(`${entry.cam.name}: feed error — retrying`);
+      setTimeout(() => { try { entry.hls?.startLoad(); entry.hls?.recoverMediaError(); } catch (x) {} }, 2000);
+      return;
+    }
     entry.kill = null;
-    if (!active.includes(entry)) return;
     deadIds.add(entry.cam.id); stopEntry(entry); active = active.filter(e => e !== entry);
     if (!bootEl.classList.contains('gone')) log(`  ↓ ${entry.cam.name} dropped after passing — will backfill`, 'bad');
     if (active.length) assignCells(true); updateHud(); renderFooter();
@@ -761,8 +768,8 @@ function watchEntry(entry) {
   entry.kill = onDead;
   entry.hls?.on(Hls.Events.ERROR, (_, d) => {
     if (!d.fatal) return;
-    if (d.type === Hls.ErrorTypes.NETWORK_ERROR && netRetries++ < 3) { setTimeout(() => entry.hls?.startLoad(), 1500); return; }
-    if (d.type === Hls.ErrorTypes.MEDIA_ERROR && mediaRetries++ < 2) { entry.hls?.recoverMediaError(); return; }
+    if (d.type === Hls.ErrorTypes.NETWORK_ERROR && (studioHold || netRetries++ < 3)) { if (studioHold) studioEvent(`${entry.cam.name}: network error — retrying`); setTimeout(() => entry.hls?.startLoad(), 1500); return; }
+    if (d.type === Hls.ErrorTypes.MEDIA_ERROR && (studioHold || mediaRetries++ < 2)) { if (studioHold) studioEvent(`${entry.cam.name}: media error — recovering`); entry.hls?.recoverMediaError(); return; }
     onDead();
   });
   entry.video.addEventListener('error', onDead);
@@ -919,6 +926,7 @@ setInterval(() => {
     // frozen? currentTime should advance on a live stream
     if (v.currentTime === e.lastT) { e.stalls++; } else { e.stalls = 0; }
     e.lastT = v.currentTime;
+    if (e.stalls >= 3 && studioHold) { e.stalls = 0; studioEvent(`${e.cam.name}: stalled — nudging`); try { e.hls?.startLoad(); e.hls?.recoverMediaError(); } catch (x) {} return; }
     if (e.stalls >= 3 && e.kill) { e.kill(); return; }   // ~15s with no new frames = dead feed
     // brightness (night feeds stay in the set until the next recompose; daylight is judged at selection time)
     try {
@@ -1234,8 +1242,13 @@ retrybtn.addEventListener('click', boot);
 const STUDIO = /\/studio\/?$/.test(location.pathname) || /[?&]studio\b/.test(location.search);
 const CAPTURE_SEC = 60, OUT_SEC = 60, OUT_FPS = 30;
 const MUXERS = ['https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.js', 'https://cdn.jsdelivr.net/npm/webm-muxer@5.0.3/build/webm-muxer.js'];
-let studioCancel = false, studioBusy = false, studioUrl = null;
+let studioCancel = false, studioBusy = false, studioUrl = null, studioHold = false;   // studioHold: recording — feeds are never dropped
 const $st = id => document.getElementById(id);
+const studioEvents = [];
+function studioEvent(msg) {
+  studioEvents.push(`${new Date().toLocaleTimeString()}  ${msg}`); if (studioEvents.length > 40) studioEvents.shift();
+  const el = document.getElementById('stlog'); if (el) el.textContent = studioEvents.slice(-4).join('\n');
+}
 function studioSay(msg, pct) {
   $st('stmsg').textContent = msg;
   if (pct != null) $st('stfill').style.width = Math.min(Math.max(pct, 0), 100) + '%';
@@ -1260,17 +1273,26 @@ async function captureClips(sec) {
     const rec = new MediaRecorder(new MediaStream(v.captureStream().getVideoTracks()), { mimeType: mime, videoBitsPerSecond: 1.5e6 });
     rec.ondataavailable = ev => { if (ev.data.size) chunks.push(ev.data); };
     const done = new Promise(res => { rec.onstop = res; });
-    rec.start(1000); recs.push({ e, rec, chunks, done });
+    rec.start(1000); recs.push({ e, rec, chunks, done, prevT: -1, moved: performance.now(), wasOk: true });
   });
   if (!recs.length) throw new Error('no feed can be recorded in this browser');
+  studioHold = true; studioEvents.length = 0; studioEvent(`recording ${recs.length} feeds`);
   const t0 = performance.now();
   await new Promise(res => {
     const iv = setInterval(() => {
-      const p = (performance.now() - t0) / 1000;
-      studioSay(`recording cams · ${Math.min(Math.round(p), sec)} / ${sec}s · ${recs.length} feeds`, Math.min(p / sec, 1) * 35);
+      const nowMs = performance.now(), p = (nowMs - t0) / 1000;
+      let ok = 0;
+      recs.forEach(r => {
+        const t = r.e.video.currentTime; if (t !== r.prevT) { r.prevT = t; r.moved = nowMs; }
+        const flowing = nowMs - r.moved < 5000;   // picture advanced in the last 5s
+        if (flowing) ok++;
+        if (flowing !== r.wasOk) { r.wasOk = flowing; studioEvent(`${r.e.cam.name}: ${flowing ? 'flowing again' : 'stopped delivering frames'}`); }
+      });
+      studioSay(`recording cams · ${Math.min(Math.round(p), sec)} / ${sec}s · ${ok} of ${recs.length} feeds flowing`, Math.min(p / sec, 1) * 35);
       if (p >= sec || studioCancel) { clearInterval(iv); res(); }
     }, 250);
   });
+  studioHold = false;
   recs.forEach(r => { if (r.rec.state !== 'inactive') r.rec.stop(); });
   await Promise.all(recs.map(r => r.done));
   return recs.filter(r => r.chunks.length).map(r => ({ e: r.e, blob: new Blob(r.chunks, { type: 'video/webm' }) }));
@@ -1361,7 +1383,7 @@ async function runStudio() {
   } catch (err) {
     studioSay(err.message === 'cancelled' ? 'cancelled' : 'failed: ' + err.message, 0);
   } finally {
-    studioBusy = false; $st('stgo').disabled = false; $st('stcancel').style.display = 'none';
+    studioHold = false; studioBusy = false; $st('stgo').disabled = false; $st('stcancel').style.display = 'none';
   }
 }
 if (STUDIO) setInterval(() => active.forEach(e => { if (e.local && e.video.paused) e.video.play().catch(() => {}); }), 1500);   // browsers pause background media; keep the local clips rolling
