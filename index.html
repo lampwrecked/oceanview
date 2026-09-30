@@ -94,7 +94,7 @@
     font-family:var(--mono); font-size:10px; letter-spacing:0.12em; text-transform:uppercase; padding:7px 0; cursor:pointer;
   }
   #rankbtn.on { border-color:var(--buoy); color:var(--buoy); }
-  #oceanbtn, #energybtn, #scalebtn, #shufflebtn, #kioskbtn {
+  #oceanbtn, #energybtn, #scalebtn, #shufflebtn, #kioskbtn, #refillbtn {
     width:100%; margin-top:8px; background:none; border:1px solid var(--line); color:var(--foam);
     font-family:var(--mono); font-size:10px; letter-spacing:0.12em; text-transform:uppercase; padding:7px 0; cursor:pointer;
   }
@@ -243,6 +243,7 @@
     <input type="range" id="surgeslider" min="0" max="1.5" step="0.05" value="0.5">
   </div>
   <div class="tab" id="tab-set">
+    <button id="refillbtn">RECOMPOSE NOW · REFILL TO 10</button>
     <button id="rankbtn">RANK: BIGGEST WAVES</button>
     <button id="oceanbtn">OCEAN: ALL</button>
     <button id="daybtn" class="on">DAYLIGHT ONLY: ON</button>
@@ -434,7 +435,7 @@ let recomposeMin = 30;               // TUNE: minutes between recompositions
 let energyTrue = false;              // force from h^2 x period (real wave energy) instead of height
 let oceanFilter = 'ALL';             // basin filter
 let kiosk = false, kioskTimer = null;
-let shortSince = 0;                  // when the active set first dropped below budget
+let recomposing = false;             // a recompose is in flight — don't start another
 const OCEANS = ['ALL','PACIFIC','ATLANTIC','MEDITERRANEAN','INDIAN'];
 function sunUp(lat, lon) {
   // solar elevation approximation; > -6 deg (civil twilight) counts as light
@@ -763,6 +764,7 @@ function watchEntry(entry) {
     deadIds.add(entry.cam.id); stopEntry(entry); active = active.filter(e => e !== entry);
     if (!bootEl.classList.contains('gone')) log(`  ↓ ${entry.cam.name} dropped after passing — will backfill`, 'bad');
     if (active.length) assignCells(true); updateHud(); renderFooter();
+    if (bootEl.classList.contains('gone')) scheduleRefill();   // boot's own loop is still filling otherwise
   };
   let netRetries = 0, mediaRetries = 0;
   entry.kill = onDead;
@@ -1219,6 +1221,29 @@ async function recompose(isBoot) {
   }
   assignCells(!isBoot); updateHud(); renderFooter(); nextRecompose = Date.now() + recomposeMin * 60000; return true;
 }
+// repull the set: keep the live cams that still rank, backfill dropped ones up to MAX_ACTIVE;
+// retryDead (manual button): if the roster runs dry, give previously-dead cams another chance
+async function refill(retryDead) {
+  if (recomposing || studioHold || STUDIO) return;
+  recomposing = true;
+  const b = document.getElementById('refillbtn'); b.disabled = true; b.textContent = 'REPULLING…';
+  try {
+    await recompose(false);
+    if (retryDead && active.length < MAX_ACTIVE) { deadIds = new Set(); await recompose(false); }
+  } finally {
+    recomposing = false; b.disabled = false; b.textContent = 'RECOMPOSE NOW · REFILL TO 10';
+  }
+}
+document.getElementById('refillbtn').addEventListener('click', () => refill(true));
+// auto-backfill after a drop: short debounce so several drops at once share one repull
+let refillTimer = null;
+function scheduleRefill() {
+  clearTimeout(refillTimer);
+  refillTimer = setTimeout(() => {
+    if (recomposing) return scheduleRefill();   // one already running — check again after it
+    if (active.length < MAX_ACTIVE) refill(false);
+  }, 3000);
+}
 let recomposeTimer = null;
 async function boot() {
   retrybtn.style.display = 'none'; bootlog.innerHTML = ''; deadIds = new Set();
@@ -1230,7 +1255,7 @@ async function boot() {
   // the set stays fixed until the recompose timer (or a setting change) asks for a new one
   if (ok && STUDIO) studioReady();
   if (ok) { setTimeout(() => bootEl.classList.add('gone'), 600); if (!recomposeTimer && !STUDIO) recomposeTimer = setInterval(() => {
-      if (Date.now() >= nextRecompose) { deadIds = new Set(); recompose(false); }
+      if (Date.now() >= nextRecompose && !recomposing) { deadIds = new Set(); recomposing = true; recompose(false).finally(() => { recomposing = false; }); }
     }, 5000); }
 }
 retrybtn.addEventListener('click', boot);
