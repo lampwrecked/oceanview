@@ -922,9 +922,11 @@ function drawFrame(now, dt) {
 const lumaCanvas = document.createElement('canvas'); lumaCanvas.width = 24; lumaCanvas.height = 14;
 const lumaCtx = lumaCanvas.getContext('2d', { willReadFrequently: true });
 setInterval(() => {
+  if (document.hidden) return;   // background tabs don't play video — that's not a dead feed
   let changed = false;
   [...active].forEach(e => {
     const v = e.video; if (!v || v.readyState < 2) return;
+    if (v.paused && !e.local) v.play().catch(() => {});   // paused is often just the browser — kick it; still counts as a stall if it won't go
     // frozen? currentTime should advance on a live stream
     if (v.currentTime === e.lastT) { e.stalls++; } else { e.stalls = 0; }
     e.lastT = v.currentTime;
@@ -1235,11 +1237,18 @@ async function refill(retryDead) {
   }
 }
 document.getElementById('refillbtn').addEventListener('click', () => refill(true));
+// back from a background tab: restart playback, forget stall counts, top the set back up
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  active.forEach(e => { e.stalls = 0; e.lastT = -1; if (e.video?.paused) e.video.play().catch(() => {}); });
+  if (bootEl.classList.contains('gone')) scheduleRefill();
+});
 // auto-backfill after a drop: short debounce so several drops at once share one repull
 let refillTimer = null;
 function scheduleRefill() {
   clearTimeout(refillTimer);
   refillTimer = setTimeout(() => {
+    if (document.hidden) return;                // resumes from visibilitychange
     if (recomposing) return scheduleRefill();   // one already running — check again after it
     if (active.length < MAX_ACTIVE) refill(false);
   }, 3000);
