@@ -27,5 +27,5 @@ CELL (block size at 1080p), MAX_ACTIVE, GLITCH_RATE, DYE_INJECT (how much fresh 
 ## Notes
 - Proxied video uses your Vercel bandwidth.
 - Boot may test more than MAX_ACTIVE cams: a feed that passes then dies gets its slot backfilled.
-- Fluid rule: each feed pushes its own blocks once per wave period, force from wave height, direction = swell travel direction in compass space (screen-up = north).
+- Fluid rule: each feed pushes its own blocks once per wave period, force = wave height squared x period (h² × period), direction = swell travel direction in compass space (screen-up = north).
 

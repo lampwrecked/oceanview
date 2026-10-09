@@ -193,7 +193,6 @@
     <input type="range" id="smearslider" min="0" max="0.97" step="0.01" value="0.97">
     <label>DECAY <span id="decayval">0.985</span></label>
     <input type="range" id="decayslider" min="0.90" max="0.999" step="0.001" value="0.985">
-    <button id="energybtn">FORCE: HEIGHT</button>
   </div>
   <div class="tab" id="tab-set">
     <button id="refillbtn">RECOMPOSE NOW · REFILL TO 10</button>
@@ -373,7 +372,7 @@ let rankSmallest = false;            // select & weight by the CALMEST seas inst
 let jitterAmt = NEAR_JITTER;         // TUNE: registration drift
 let satAmt = 1;                      // TUNE: color saturation
 let recomposeMin = 30;               // TUNE: minutes between recompositions
-let energyTrue = false;              // force from h^2 x period (real wave energy) instead of height
+const energyTrue = true;             // force is always h^2 x period (real wave energy); no height-only mode
 let oceanFilter = 'ALL';             // basin filter
 let kiosk = false, kioskTimer = null;
 let recomposing = false;             // a recompose is in flight — don't start another
@@ -1003,12 +1002,6 @@ document.getElementById('oceanbtn').addEventListener('click', () => {
   oceanFilter = OCEANS[(OCEANS.indexOf(oceanFilter) + 1) % OCEANS.length];
   document.getElementById('oceanbtn').textContent = 'OCEAN: ' + oceanFilter;
   deadIds = new Set(); nextRecompose = Date.now();
-});
-document.getElementById('energybtn').addEventListener('click', () => {
-  energyTrue = !energyTrue;
-  const b = document.getElementById('energybtn');
-  b.classList.toggle('on', energyTrue);
-  b.textContent = energyTrue ? 'FORCE: H²×PERIOD' : 'FORCE: HEIGHT';
 });
 document.getElementById('shufflebtn').addEventListener('click', () => {
   if (active.length) assignCells(true);   // same cell counts per feed, new positions
