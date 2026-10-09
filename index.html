@@ -347,7 +347,7 @@ const SIM_W = 256, SIM_H = 144;       // velocity/pressure grid (16:9)
 let dyeInject        = 0.03;   // TUNE: FRESH          // fresh mosaic blended in per frame (lower = longer smear)
 let velDissipate     = 0.985;  // TUNE: DECAY
 const PRESSURE_ITERS = LOW_POWER ? 8 : 12;
-let curlAmt          = 20;     // TUNE: CURL
+let curlAmt          = 0;      // public build: curl off
 let splatRad         = 0.03;   // TUNE: SPLAT
 
 /* export */
@@ -557,7 +557,7 @@ function fluidStep(dt) {
 }
 
 /* wave-train state shared by the swell force pass and the final composite */
-let swellAmt = 1, refrAmt = 1, tearAmt = 0.6, chromAmt = 0.6, foamAmt = 0.5, ringAmt = 1, snapAmt = 0.4, surgeAmt = 0.5;
+let swellAmt = 0, refrAmt = 0, tearAmt = 0, chromAmt = 0, foamAmt = 0, ringAmt = 0, snapAmt = 0, surgeAmt = 0;   // public build: all wave effects off
 const waveU = new Float32Array(40), waveP = new Float32Array(40), ringU = new Float32Array(24);
 let waveTime = 0, waveBreath = 0, rings = [];
 /* freeform sea: all feeds packed into one atlas (5x2 cells, slot = wave-train index) that the composite shader samples */
@@ -1021,7 +1021,6 @@ document.getElementById('kioskbtn').addEventListener('click', () => {
   if (kiosk) kioskTimer = setInterval(() => {
     const r = Math.random();
     if (r < 0.3) { fluidAmt = 0.4 + Math.random() * 1.4; document.getElementById('fluidslider').value = fluidAmt; document.getElementById('fluidval').textContent = fluidAmt.toFixed(2); }
-    else if (r < 0.5) { curlAmt = 5 + Math.random() * 30; }
     else if (r < 0.7) { cellBase = 56 + Math.round(Math.random() * 30) * 4; document.getElementById('cellslider').value = cellBase; document.getElementById('cellval').textContent = cellBase; cellPx = Math.max(16, Math.round(cellBase * H / 1080)); cols = Math.ceil(W / cellPx); rows = Math.ceil(H / cellPx); cells = []; if (active.length) assignCells(false); }
     else if (r < 0.85) { jitterAmt = Math.random() * 1.6; document.getElementById('jitslider').value = jitterAmt; document.getElementById('jitval').textContent = jitterAmt.toFixed(2); }
     else if (active.length) assignCells(true);

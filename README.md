@@ -15,7 +15,7 @@ No video or image export, no studio. Starts with FLUID, SPLAT and SMEAR at maxim
 ## Behaviour
 - Boot: loading screen orders every cam by live wave height, tries them in that order (progress bar), and locks the first 10 that load. The set does not change until the recompose timer fires (SET tab) or you change rank/ocean/daylight.
 - Not mouse-driven: the pointer never stirs the fluid. Tap/click a block to identify its cam.
-- Wave effects (swell warp, tear, chroma split, foam, rings, sustained swell force) run at fixed defaults; there is no WAVES tab in the public build.
+- Curl and the wave effects (swell warp, tear, chroma split, foam, rings, snap, surge, swell force, freeform) are kept in the code but set to 0 in the public build, with no controls.
 - Northeast US cams (Long Island / NYC / NJ) come from Coastal Camera Network. No public Connecticut stream was found.
 
 ## Keys
