@@ -1,4 +1,4 @@
-﻿{
+{
     "note":  "Reference copy of the CAMS roster in index.html (the app reads index.html). lat/lon feed the Open-Meteo marine API.",
     "cams":  [
                  {
@@ -206,7 +206,7 @@
                  },
                  {
                      "id":  "sao-vicente",
-                     "name":  "SÃ£o Vicente BR",
+                     "name":  "São Vicente BR",
                      "url":  "http://egina.nethorizontes.tv:1935/lopesip/lopesip02.stream/playlist.m3u8",
                      "lat":  -23.97,
                      "lon":  -46.39
