@@ -6,9 +6,17 @@
 export const config = { maxDuration: 30 };
 
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' };
+// Only the current build may use the proxy. Older copies of the page still open in someone's tab
+// (no idle timeout) don't send this, get a 410, and stop pulling video through Vercel.
+// Bump this together with PROXY in index.html to cut off every older build again.
+const API_VERSION = '2';
 
 export async function GET(request) {
-  const target = new URL(request.url).searchParams.get('u');
+  const params = new URL(request.url).searchParams;
+  if (params.get('v') !== API_VERSION) {
+    return new Response('this version of Ocean View is retired — reload the page', { status: 410, headers: CORS });
+  }
+  const target = params.get('u');
   if (!target || !/^https?:\/\//i.test(target)) {
     return new Response('missing or invalid ?u=', { status: 400, headers: CORS });
   }
@@ -28,7 +36,7 @@ export async function GET(request) {
     if (isPlaylist) {
       const text = await upstream.text();
       const base = new URL(upstream.url || target);
-      const wrap = (uri) => '/api/cam?u=' + encodeURIComponent(new URL(uri, base).href);
+      const wrap = (uri) => `/api/cam?v=${API_VERSION}&u=` + encodeURIComponent(new URL(uri, base).href);
       const rewritten = text.split('\n').map((line) => {
         const t = line.trim();
         if (!t) return line;

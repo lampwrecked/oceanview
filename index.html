@@ -415,7 +415,7 @@ const SWAP_SPREAD_MS = 6000;
 const GLITCH_RATE    = 0.003;
 const NEAR_JITTER    = 0.6;           // how far (in cells) a block may drift from its true position
 const CROP = { t:0.10, b:0.10, l:0.05, r:0.05 }; // fraction trimmed off each source edge — where timestamps/logos live
-const PROXY          = '/api/cam?u=';  // proxy route — set to '' to disable
+const PROXY          = '/api/cam?v=2&u=';  // proxy route — set to '' to disable. v must match API_VERSION in api/cam.js (older builds get refused)
 
 /* fluid */
 const SIM_W = 256, SIM_H = 144;       // velocity/pressure grid (16:9)
