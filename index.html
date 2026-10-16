@@ -172,6 +172,17 @@
   #keys { position:fixed; bottom:10px; right:14px; z-index:21; font-size:10px; color:var(--dim); letter-spacing:0.1em; text-transform:uppercase; transition:opacity .4s ease; }
 
   @media (prefers-reduced-motion: reduce) { #hud, #spotsbtn, #tunebtn, #keys { transition:none; } }
+
+  /* idle timeout: "still watching?" prompt, then sleep (stops all streams so nothing hits the proxy) */
+  #idle { position:fixed; inset:0; z-index:40; display:none; background:rgba(10,14,18,0.82);
+    flex-direction:column; justify-content:center; align-items:center; gap:14px; padding:24px; text-align:center; }
+  #idle.show { display:flex; }
+  #idle h2 { font-size:clamp(16px,3vw,26px); font-weight:700; letter-spacing:0.24em; text-transform:uppercase; }
+  #idle h2 span { color:var(--buoy); }
+  #idle .sub { color:var(--dim); font-size:11px; letter-spacing:0.14em; text-transform:uppercase; }
+  #idle button { margin-top:8px; background:none; border:1px solid var(--buoy); color:var(--foam); font-family:var(--mono);
+    font-size:12px; letter-spacing:0.16em; text-transform:uppercase; padding:12px 22px; cursor:pointer; }
+  #idle button:hover { background:var(--buoy); color:var(--ink); }
 </style>
 </head>
 <body>
@@ -278,6 +289,12 @@
   </div>
   <div id="bootlog"></div>
   <button class="retry" id="retrybtn">Retry</button>
+</div>
+
+<div id="idle">
+  <h2 id="idletitle">STILL <span>WATCHING</span>?</h2>
+  <div class="sub" id="idlesub">the cams pause in <b id="idlecount">60</b>s</div>
+  <button id="idlebtn">I'm still here</button>
 </div>
 
 <script>
@@ -1175,6 +1192,7 @@ function setBoot(phase, pct) {
 }
 const bootPct = () => 12 + 88 * Math.min(active.length / MAX_ACTIVE, 1);
 async function recompose(isBoot) {
+  if (sleeping) return false;
   if (isBoot) { bootTried = 0; setBoot('fetching wave heights', 4); log('· fetching wave heights (open-meteo marine)…'); }
   try { waves = await fetchWaves(CAMS); if (isBoot) log('· wave data received', 'ok'); }
   catch (e) { if (isBoot) log('· wave data failed — equal weighting', 'bad'); }
@@ -1239,7 +1257,7 @@ async function refill(retryDead) {
 document.getElementById('refillbtn').addEventListener('click', () => refill(true));
 // back from a background tab: restart playback, forget stall counts, top the set back up
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) return;
+  if (document.hidden || sleeping) return;
   active.forEach(e => { e.stalls = 0; e.lastT = -1; if (e.video?.paused) e.video.play().catch(() => {}); });
   if (bootEl.classList.contains('gone')) scheduleRefill();
 });
@@ -1248,7 +1266,7 @@ let refillTimer = null;
 function scheduleRefill() {
   clearTimeout(refillTimer);
   refillTimer = setTimeout(() => {
-    if (document.hidden) return;                // resumes from visibilitychange
+    if (document.hidden || sleeping) return;                // resumes from visibilitychange
     if (recomposing) return scheduleRefill();   // one already running — check again after it
     if (active.length < MAX_ACTIVE) refill(false);
   }, 3000);
@@ -1438,6 +1456,44 @@ addEventListener('keydown', e => {
     document.getElementById('freeslider').value = freeAmt; document.getElementById('freeval').textContent = freeAmt.toFixed(2);
   }
 });
+
+/* ================= IDLE TIMEOUT =================
+   After IDLE_MS of no interaction, ask "still watching?". No answer within IDLE_GRACE_MS -> sleep:
+   every stream is torn down and nothing reconnects, so a forgotten tab stops costing proxy bandwidth.
+   Gallery/installation screens: open with ?install to disable this entirely. */
+const IDLE_MS = 20 * 60 * 1000, IDLE_GRACE_MS = 60 * 1000;
+const NO_IDLE = /[?&](install|kiosk)\b/.test(location.search) || STUDIO;
+let lastActive = Date.now(), idleAskedAt = 0, sleeping = false;
+const idleEl = document.getElementById('idle');
+function idleBusy() { return !!(recorder || studioBusy || studioHold || exportJob); }   // never interrupt a recording/render
+function stillHere() {
+  if (sleeping) return;
+  lastActive = Date.now();
+  if (idleAskedAt) { idleAskedAt = 0; idleEl.classList.remove('show'); }
+}
+function goToSleep() {
+  sleeping = true; idleAskedAt = 0;
+  clearInterval(recomposeTimer); recomposeTimer = null;
+  clearTimeout(refillTimer); clearInterval(kioskTimer);
+  active.forEach(stopEntry); active = [];
+  document.getElementById('idletitle').innerHTML = 'OCEAN<span>VIEW</span> PAUSED';
+  document.getElementById('idlesub').textContent = 'streams stopped while you were away';
+  document.getElementById('idlebtn').textContent = 'Resume';
+  idleEl.classList.add('show');
+}
+document.getElementById('idlebtn').addEventListener('click', () => sleeping ? location.reload() : stillHere());
+['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(t => addEventListener(t, stillHere, { passive: true }));
+if (!NO_IDLE) setInterval(() => {
+  if (sleeping) { if (active.length) { active.forEach(stopEntry); active = []; } return; }   // catch a feed that finished loading mid-sleep
+  const now = Date.now();
+  if (idleBusy()) { lastActive = now; return; }
+  if (!idleAskedAt && now - lastActive >= IDLE_MS) { idleAskedAt = now; idleEl.classList.add('show'); }
+  if (idleAskedAt) {
+    const left = IDLE_GRACE_MS - (now - idleAskedAt);
+    document.getElementById('idlecount').textContent = Math.max(0, Math.ceil(left / 1000));
+    if (left <= 0) goToSleep();
+  }
+}, 1000);
 
 initGL();
 fitLive();

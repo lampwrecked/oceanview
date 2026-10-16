@@ -18,6 +18,10 @@ Upload this folder to Vercel (or `vercel deploy` inside it). No build step â€
 ## Studio (/studio)
 Second version for making a video without depending on live streams. Open `/studio` (or `?studio`), let the 10 cams lock, pick a resolution, press RECORD 60s + RENDER 60s. It records every cam for 60s, swaps the live streams for those local clips, then renders 60s of the synthesizer offline on a fixed 30fps timeline (WebCodecs to MP4, WebM fallback) and downloads it. If the machine can't keep up it renders slower instead of dropping frames. Keep the tab in front and use current Chrome/Edge. Current TUNE/WAVES/FREEFORM settings are what get rendered. Rendering uses the settings as they are when you press the button.
 
+## Idle timeout
+After 20 min with no tap/click/key, a "Still watching?" prompt appears. No answer within 60 s and every stream is stopped (nothing goes through the /api/cam proxy anymore) until the viewer presses Resume. Recording and /studio renders are never interrupted.
+For gallery/installation screens open **/?install** (or ?kiosk) — the timeout is disabled there.
+
 ## Keys
 H hide HUD Â· F fullscreen Â· W toggle fluid Â· R record 4K webm Â· S save PNG
 
