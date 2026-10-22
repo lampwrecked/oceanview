@@ -1,3 +1,11 @@
 {
-  "functions": { "api/cam.js": { "maxDuration": 30 } }
+  "functions": { "api/cam.js": { "maxDuration": 30 } },
+  "redirects": [
+    {
+      "source": "/:path*",
+      "missing": [{ "type": "host", "value": "oceanview.lampwrecked.art" }],
+      "destination": "https://oceanview.lampwrecked.art/:path*",
+      "permanent": false
+    }
+  ]
 }
