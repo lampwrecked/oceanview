@@ -29,3 +29,7 @@ CELL (block size at 1080p), MAX_ACTIVE, GLITCH_RATE, DYE_INJECT (how much fresh 
 - Boot may test more than MAX_ACTIVE cams: a feed that passes then dies gets its slot backfilled.
 - Fluid rule: each feed pushes its own blocks once per wave period, force = wave height squared x period (h² × period), direction = swell travel direction in compass space (screen-up = north).
 
+
+## Idle timeout
+After 15 min with no tap/click/key, a "Still watching?" prompt appears. No answer within 30 s and every stream is stopped (nothing goes through the /api/cam proxy anymore) until the viewer presses Resume.
+For gallery/installation screens open **/?install** (or ?kiosk) — the timeout is disabled there.
