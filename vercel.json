@@ -1,4 +1,17 @@
 {
-  "functions": { "api/cam.js": { "maxDuration": 30 } },
-  "rewrites": [{ "source": "/studio", "destination": "/index.html" }]
+  "functions": {
+    "api/cam.js": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/studio",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/cylinder",
+      "destination": "/cylinder.html"
+    }
+  ]
 }

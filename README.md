@@ -34,3 +34,12 @@ CELL (block size at 1080p), MAX_ACTIVE, GLITCH_RATE, DYE_INJECT (how much fresh 
 - Boot may test more than MAX_ACTIVE cams: a feed that passes then dies gets its slot backfilled.
 - Fluid rule: each feed pushes its own blocks once per wave period, force from wave height, direction = swell travel direction in compass space (screen-up = north). Touch also stirs.
 
+
+## Cylinder page (lamp branch only) — /cylinder
+`cylinder.html` is the studio retargeted at the Fondation Schneider LED cylinder (Philbox quote DE26011059: 2.038 m across x 1.92 m tall, 240 modules of 172x86 px = **3440 x 1032**). Left and right edges are the same line on the sculpture, so the fluid wraps: anything that leaves one edge re-enters on the other.
+- Wrap: fluid/pressure/dye textures REPEAT in x (sim grid 512x128, dye 4:1 power-of-two); no wall on the left/right; splats and pulse rings use wrapped distance; the swell wave trains are snapped to a whole number of crests around the cylinder. The zoom pulse and the freeform sea are switched off (neither can wrap).
+- Block sizes snap to 43 / 86 / 172 / 344 px so the grid tiles 3440 x 1032 exactly (default 172 = 20 x 6 blocks).
+- Studio: pick 3440x1032 (final), 1720x516 or 860x258, then RECORD 60s + RENDER 60s. Output is an H.264 MP4 (WebM fallback), `oceanview-cylinder-1min-*.mp4`. Needs desktop Chrome/Edge (WebCodecs).
+- SEAM CHECK (button or key C) slides the picture half a turn so the join sits in the middle of the screen. It is never applied to an export.
+- SAVE STILL / key S saves a PNG at the current preview size (set preview 3440 for full-size stills).
+- Do not merge this file into main: the public build stays index.html only.
