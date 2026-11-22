@@ -219,8 +219,8 @@
     <button id="shufflebtn">SHUFFLE GRID</button>
   </div>
   <div class="tab" id="tab-fluid">
-    <label>FLUID <span id="fluidval">1.0</span></label>
-    <input type="range" id="fluidslider" min="0" max="2.5" step="0.05" value="1">
+    <label>FLUID <span id="fluidval">2.5</span></label>
+    <input type="range" id="fluidslider" min="0" max="2.5" step="0.05" value="2.5">
     <label>CURL <span id="curlval">0</span></label>
     <input type="range" id="curlslider" min="0" max="45" step="1" value="0">
     <label>SPLAT <span id="splatval">6</span></label>
@@ -453,7 +453,7 @@ let ownerCells = [];      // per active feed: indices of the cells it owns
 const DEFAULT_PERIOD = 8;  // seconds, when Open-Meteo has no period for a spot
 const DIR_JITTER_DEG = 15; // spread around each spot's true swell direction
 let W = 1280, H = 720, cellPx = CELL, cols = 0, rows = 0, cells = [];
-let fluidAmt = 1, cellBase = 190;    // synth knobs: fluid gain, block size at 1080p (starts at max)
+let fluidAmt = 2.5, cellBase = 180;    // synth knobs: fluid gain, block size at 1080p (starts at max)
 let soloBiggest = false;             // only the tallest spot drives the fluid
 let noFoliage = true;                // drop feeds that are mostly green (trees, grass)
 const FOLIAGE_MAX = 0.20;            // share of green-dominant pixels above which a feed counts as foliage-heavy
