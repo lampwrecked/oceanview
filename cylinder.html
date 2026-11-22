@@ -221,8 +221,8 @@
   <div class="tab" id="tab-fluid">
     <label>FLUID <span id="fluidval">1.0</span></label>
     <input type="range" id="fluidslider" min="0" max="2.5" step="0.05" value="1">
-    <label>CURL <span id="curlval">20</span></label>
-    <input type="range" id="curlslider" min="0" max="45" step="1" value="20">
+    <label>CURL <span id="curlval">0</span></label>
+    <input type="range" id="curlslider" min="0" max="45" step="1" value="0">
     <label>SPLAT <span id="splatval">6</span></label>
     <input type="range" id="splatslider" min="1" max="30" step="1" value="6">
     <label>SMEAR <span id="smearval">0.82</span></label>
@@ -236,22 +236,22 @@
     <input type="range" id="freeslider" min="0" max="1" step="0.01" value="0">
     <label>FREEFORM FLOW (drift) <span id="flowval">1.00</span></label>
     <input type="range" id="flowslider" min="0" max="3" step="0.05" value="1">
-    <label>SWELL FORCE (sustained) <span id="swellval">1.0</span></label>
-    <input type="range" id="swellslider" min="0" max="3" step="0.05" value="1">
-    <label>REFRACT (swell warp) <span id="refrval">1.0</span></label>
-    <input type="range" id="refrslider" min="0" max="3" step="0.05" value="1">
-    <label>TEAR (crest row-shift) <span id="tearval">0.6</span></label>
-    <input type="range" id="tearslider" min="0" max="2" step="0.05" value="0.6">
-    <label>CHROMA SPLIT <span id="chromval">0.6</span></label>
-    <input type="range" id="chromslider" min="0" max="2" step="0.05" value="0.6">
-    <label>FOAM (crest whitewash) <span id="foamval">0.5</span></label>
-    <input type="range" id="foamslider" min="0" max="1.5" step="0.05" value="0.5">
-    <label>RINGS (pulse ripples) <span id="ringval">1.0</span></label>
-    <input type="range" id="ringslider" min="0" max="3" step="0.05" value="1">
-    <label>BLOCK SNAP (crest quantize) <span id="snapval">0.4</span></label>
-    <input type="range" id="snapslider" min="0" max="1" step="0.05" value="0.4">
-    <label>SET BREATH (whole-frame surge) <span id="surgeval">0.5</span></label>
-    <input type="range" id="surgeslider" min="0" max="1.5" step="0.05" value="0.5">
+    <label>SWELL FORCE (sustained) <span id="swellval">0</span></label>
+    <input type="range" id="swellslider" min="0" max="3" step="0.05" value="0">
+    <label>REFRACT (swell warp) <span id="refrval">0</span></label>
+    <input type="range" id="refrslider" min="0" max="3" step="0.05" value="0">
+    <label>TEAR (crest row-shift) <span id="tearval">0</span></label>
+    <input type="range" id="tearslider" min="0" max="2" step="0.05" value="0">
+    <label>CHROMA SPLIT <span id="chromval">0</span></label>
+    <input type="range" id="chromslider" min="0" max="2" step="0.05" value="0">
+    <label>FOAM (crest whitewash) <span id="foamval">0</span></label>
+    <input type="range" id="foamslider" min="0" max="1.5" step="0.05" value="0">
+    <label>RINGS (pulse ripples) <span id="ringval">0</span></label>
+    <input type="range" id="ringslider" min="0" max="3" step="0.05" value="0">
+    <label>BLOCK SNAP (crest quantize) <span id="snapval">0</span></label>
+    <input type="range" id="snapslider" min="0" max="1" step="0.05" value="0">
+    <label>SET BREATH (whole-frame surge) <span id="surgeval">0</span></label>
+    <input type="range" id="surgeslider" min="0" max="1.5" step="0.05" value="0">
   </div>
   <div class="tab" id="tab-set">
     <button id="refillbtn">RECOMPOSE NOW · REFILL TO 10</button>
@@ -433,7 +433,7 @@ const SIM_W = 512, SIM_H = 128;       // velocity/pressure grid: 4:1, power-of-t
 let dyeInject        = 0.18;   // TUNE: FRESH          // fresh mosaic blended in per frame (lower = longer smear)
 let velDissipate     = 0.985;  // TUNE: DECAY
 const PRESSURE_ITERS = LOW_POWER ? 8 : 12;
-let curlAmt          = 20;     // TUNE: CURL
+let curlAmt          = 0;      // curl off (matches the public build)
 let splatRad         = 0.006;  // TUNE: SPLAT
 
 /* export */
@@ -647,7 +647,7 @@ function fluidStep(dt) {
 }
 
 /* wave-train state shared by the swell force pass and the final composite */
-let swellAmt = 1, refrAmt = 1, tearAmt = 0.6, chromAmt = 0.6, foamAmt = 0.5, ringAmt = 1, snapAmt = 0.4, surgeAmt = 0.5;
+let swellAmt = 0, refrAmt = 0, tearAmt = 0, chromAmt = 0, foamAmt = 0, ringAmt = 0, snapAmt = 0, surgeAmt = 0;   // all wave effects off (matches the public build)
 const waveU = new Float32Array(40), waveP = new Float32Array(40), ringU = new Float32Array(24);
 let waveTime = 0, waveBreath = 0, rings = [];
 /* freeform sea: all feeds packed into one atlas (5x2 cells, slot = wave-train index) that the composite shader samples */
@@ -1169,7 +1169,7 @@ document.getElementById('kioskbtn').addEventListener('click', () => {
   if (kiosk) kioskTimer = setInterval(() => {
     const r = Math.random();
     if (r < 0.3) { fluidAmt = 0.4 + Math.random() * 1.4; document.getElementById('fluidslider').value = fluidAmt; document.getElementById('fluidval').textContent = fluidAmt.toFixed(2); }
-    else if (r < 0.5) { curlAmt = 5 + Math.random() * 30; document.getElementById('curlslider').value = curlAmt; document.getElementById('curlval').textContent = Math.round(curlAmt); }
+    else if (r < 0.5) { curlAmt = 0; document.getElementById('curlslider').value = curlAmt; document.getElementById('curlval').textContent = Math.round(curlAmt); }
     else if (r < 0.7) { cellBase = 56 + Math.round(Math.random() * 30) * 4; document.getElementById('cellslider').value = cellBase; document.getElementById('cellval').textContent = cellBase; cellPx = cylCell(); cols = Math.ceil(W / cellPx); rows = Math.ceil(H / cellPx); cells = []; if (active.length) assignCells(false); }
     else if (r < 0.85) { jitterAmt = Math.random() * 1.6; document.getElementById('jitslider').value = jitterAmt; document.getElementById('jitval').textContent = jitterAmt.toFixed(2); }
     else if (active.length) assignCells(true);
