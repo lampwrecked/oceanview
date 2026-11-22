@@ -456,7 +456,7 @@ let W = 1280, H = 720, cellPx = CELL, cols = 0, rows = 0, cells = [];
 let fluidAmt = 1, cellBase = 190;    // synth knobs: fluid gain, block size at 1080p (starts at max)
 let soloBiggest = false;             // only the tallest spot drives the fluid
 let noFoliage = true;                // drop feeds that are mostly green (trees, grass)
-const FOLIAGE_MAX = 0.30;            // share of green-dominant pixels above which a feed counts as foliage-heavy
+const FOLIAGE_MAX = 0.20;            // share of green-dominant pixels above which a feed counts as foliage-heavy
 let dayOnly = true;                  // start following the sun (toggle in SET tab)
 let rankRandom = (new URLSearchParams(location.search)).has('random');   // pick cams at random, ignoring wave height
 let rankSmallest = false;            // select & weight by the CALMEST seas instead
@@ -978,7 +978,7 @@ setInterval(() => {
       let sum = 0;
       for (let i = 0; i < px.length; i += 4) sum += (px[i]*0.299 + px[i+1]*0.587 + px[i+2]*0.114);
       const luma = sum / (px.length / 4) / 255;
-      let g = 0; for (let i = 0; i < px.length; i += 4) if (px[i+1] > 50 && px[i+1] > px[i]*1.12 && px[i+1] > px[i+2]*1.12) g++;
+      let g = 0; for (let i = 0; i < px.length; i += 4) { const r = px[i], gg = px[i+1], bl = px[i+2], l = (r*0.299 + gg*0.587 + bl*0.114) / 255; if (gg >= bl && gg >= r*0.88 && l < 0.5) g++; }   // dark olive/green-leaning pixels: trees, scrub
       e.green = g / (px.length / 4);
       if (noFoliage && e.green > FOLIAGE_MAX && !studioHold && !studioBusy && !recorder && e.kill) { e.kill(); return; }   // foliage-heavy: drop, set backfills with the next cam
       if ((luma < LUMA_MIN) !== (e.luma < LUMA_MIN)) changed = true;
