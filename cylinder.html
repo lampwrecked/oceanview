@@ -456,6 +456,7 @@ let W = 1280, H = 720, cellPx = CELL, cols = 0, rows = 0, cells = [];
 let fluidAmt = 1, cellBase = 190;    // synth knobs: fluid gain, block size at 1080p (starts at max)
 let soloBiggest = false;             // only the tallest spot drives the fluid
 let dayOnly = true;                  // start following the sun (toggle in SET tab)
+let rankRandom = (new URLSearchParams(location.search)).has('random');   // pick cams at random, ignoring wave height
 let rankSmallest = false;            // select & weight by the CALMEST seas instead
 let jitterAmt = NEAR_JITTER;         // TUNE: registration drift
 let satAmt = 1;                      // TUNE: color saturation
@@ -816,7 +817,7 @@ function watchEntry(entry) {
 function assignCells(animate) {
   const n = cols * rows;
   const vis = visibleEntries();
-  const weights = vis.map(i => rankSmallest ? 1 / Math.max(active[i].wave ?? 1, 0.2) : Math.max(active[i].wave ?? MIN_WEIGHT, MIN_WEIGHT));
+  const weights = vis.map(i => rankRandom ? 1 : rankSmallest ? 1 / Math.max(active[i].wave ?? 1, 0.2) : Math.max(active[i].wave ?? MIN_WEIGHT, MIN_WEIGHT));
   const total = weights.reduce((s,w) => s+w, 0);
   const pool = [];
   vis.forEach((idx, k) => { const c = Math.round((weights[k]/total)*n); for (let q = 0; q < c; q++) pool.push(idx); });
@@ -1132,10 +1133,13 @@ document.getElementById('solobig').addEventListener('click', () => {
   document.getElementById('solobig').classList.toggle('on', soloBiggest);
 });
 document.getElementById('rankbtn').addEventListener('click', () => {
-  rankSmallest = !rankSmallest;
+  // cycle: biggest -> smallest -> random
+  if (rankRandom) { rankRandom = false; rankSmallest = false; }
+  else if (rankSmallest) { rankSmallest = false; rankRandom = true; }
+  else rankSmallest = true;
   const b = document.getElementById('rankbtn');
-  b.classList.toggle('on', rankSmallest);
-  b.textContent = rankSmallest ? 'RANK: SMALLEST WAVES' : 'RANK: BIGGEST WAVES';
+  b.classList.toggle('on', rankSmallest || rankRandom);
+  b.textContent = rankRandom ? 'RANK: RANDOM CAMS' : rankSmallest ? 'RANK: SMALLEST WAVES' : 'RANK: BIGGEST WAVES';
   deadIds = new Set(); nextRecompose = Date.now();   // rebuild the set now
 });
 document.getElementById('oceanbtn').addEventListener('click', () => {
@@ -1221,6 +1225,7 @@ async function recompose(isBoot) {
   const ranked = pool
     .map(c => ({ ...c, wave: waves[c.id] ?? null }))
     .sort((a,b) => rankSmallest ? (a.wave ?? 99)-(b.wave ?? 99) : (b.wave ?? 0)-(a.wave ?? 0));
+  if (rankRandom) shuffle(ranked);
   if (isBoot) {
     setBoot('ordering by wave height', 9);
     log(`· ordered ${ranked.length} cams by ${rankSmallest ? 'smallest' : 'biggest'} wave height:`);
